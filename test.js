@@ -63,6 +63,21 @@ app.get("/return", async (req, res) => {
   res.send("return")
 })
 
+app.get('/secret', async (req, res) => {
+  // amountはここで算出する
+  const amount = 1000;
+  const fee = amount * 0.3; // TODO 額に応じて計算する
+  const intent = await stripe.paymentIntents.create({
+    payment_method_types: ['card'],
+    amount,
+    currency: 'jpy',
+    application_fee_amount: fee,
+  }, {
+    stripeAccount: req.session.accountID,
+  });
+  res.json({client_secret: intent.client_secret});
+});
+
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
 })
