@@ -13,12 +13,13 @@
       return response.json();
     }).then(function(responseJson) {
       var clientSecret = responseJson.client_secret;
+      var apiKey = responseJson.api_kay;
       // Call stripe.confirmCardPayment() with the client secret.
-      renderCardInput(clientSecret)
+      renderCardInput(clientSecret, apiKey)
     });
   }
-  function renderCardInput(clientSecret) {
-    var stripe = Stripe('<API_KEY>', {
+  function renderCardInput(clientSecret, apiKey) {
+    var stripe = Stripe(apiKey, {
       stripeAccount: "LOGIN USER ACCOUNTに紐づくstripe account id"
     });
 

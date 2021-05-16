@@ -1,5 +1,6 @@
 const express = require('express')
 const session = require("express-session")
+const bodyParser = require("body-parser");
 const stripe = require('stripe')(process.env["SECRET_KEY"])
 const app = express()
 const port = 8000
@@ -11,6 +12,15 @@ app.use(
     saveUninitialized: true,
   })
 );
+app.use(express.static('public'));
+app.use(express.json());
+app.use((req, res, next) => {
+  if (req.originalUrl === "/webhook") {
+    next();
+  } else {
+    bodyParser.json()(req, res, next);
+  }
+});
 
 app.get('/', async (req, res) => {
   const account = await stripe.accounts.create({
@@ -73,10 +83,42 @@ app.get('/secret', async (req, res) => {
     currency: 'jpy',
     application_fee_amount: fee,
   }, {
-    stripeAccount: req.session.accountID,
+    stripeAccount: "売り手のアカウントID",
   });
-  res.json({client_secret: intent.client_secret});
+  res.json({
+    client_secret: intent.client_secret,
+    api_key: process.env["API_KEY"],
+  });
 });
+
+const endpointSecret = 'whsec_...';
+app.post('/webhook', bodyParser.raw({type: 'application/json'}), (request, response) => {
+  const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  // Verify webhook signature and extract the event.
+  // See https://stripe.com/docs/webhooks/signatures for more information.
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  } catch (err) {
+    return response.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'payment_intent.succeeded') {
+    const paymentIntent = event.data.object;
+    const connectedAccountId = event.account;
+    handleSuccessfulPaymentIntent(connectedAccountId, paymentIntent);
+  }
+
+  response.json({received: true});
+});
+
+const handleSuccessfulPaymentIntent = (connectedAccountId, paymentIntent) => {
+  // Fulfill the purchase.
+  console.log('Connected account ID: ' + connectedAccountId);
+  console.log(JSON.stringify(paymentIntent));
+}
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)

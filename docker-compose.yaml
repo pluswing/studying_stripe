@@ -10,3 +10,4 @@ services:
     tty: true
     environment:
       SECRET_KEY: XXX
+      API_KEY: YYY

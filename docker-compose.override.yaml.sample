@@ -2,3 +2,4 @@ services:
   app:
     environment:
       SECRET_KEY: XXX
+      API_KEY: YYY
