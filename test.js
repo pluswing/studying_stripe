@@ -22,6 +22,7 @@ app.use((req, res, next) => {
   }
 });
 
+/*
 app.get('/', async (req, res) => {
   const account = await stripe.accounts.create({
     type: 'standard',
@@ -39,7 +40,8 @@ app.get('/', async (req, res) => {
 
   res.redirect(accountLinks.url)
 })
-
+*/
+/*
 app.get("/reauth", async (req, res) => {
   const accountId = req.session.accountID
 
@@ -57,7 +59,8 @@ app.get("/reauth", async (req, res) => {
 
   res.redirect(accountLinks.url)
 })
-
+*/
+/*
 app.get("/return", async (req, res) => {
   const accountId = req.session.accountID
   if (!accountId) {
@@ -72,7 +75,7 @@ app.get("/return", async (req, res) => {
   console.log(account)
   res.send("return")
 })
-
+*/
 app.get('/secret', async (req, res) => {
   // amountはここで算出する
   const amount = 1000;
@@ -112,6 +115,36 @@ app.post('/webhook', bodyParser.raw({type: 'application/json'}), (request, respo
   }
 
   response.json({received: true});
+});
+
+app.get("/oauth", async (req, res) => {
+  // TODO oauth urlにstateをつけて、チェックを行う。
+  // if (req.session.state != req.query.state) {
+  //   // エラーにする
+  // }
+
+  if (req.query.error) {
+    res.send(req.query.error)
+    return
+  }
+
+  const code = req.query.code
+  const response = await stripe.oauth.token({
+    grant_type: 'authorization_code',
+    code,
+  });
+
+  console.log(response)
+  var connectedAccountId = response.stripe_user_id;
+
+  const account = await stripe.accounts.retrieve(
+    connectedAccountId
+  );
+  // TODO charges_enabled, details_submittedを見て
+  // 登録が正常に行われたかを確認する必要がある。
+  console.log(account)
+  // TODO ユーザー情報と紐付けを行う。
+  res.send("OK")
 });
 
 const handleSuccessfulPaymentIntent = (connectedAccountId, paymentIntent) => {
