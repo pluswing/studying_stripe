@@ -22,7 +22,6 @@ app.use((req, res, next) => {
   }
 });
 
-/*
 app.get('/', async (req, res) => {
   const account = await stripe.accounts.create({
     type: 'standard',
@@ -40,8 +39,7 @@ app.get('/', async (req, res) => {
 
   res.redirect(accountLinks.url)
 })
-*/
-/*
+
 app.get("/reauth", async (req, res) => {
   const accountId = req.session.accountID
 
@@ -59,8 +57,7 @@ app.get("/reauth", async (req, res) => {
 
   res.redirect(accountLinks.url)
 })
-*/
-/*
+
 app.get("/return", async (req, res) => {
   const accountId = req.session.accountID
   if (!accountId) {
@@ -75,7 +72,7 @@ app.get("/return", async (req, res) => {
   console.log(account)
   res.send("return")
 })
-*/
+
 app.get('/secret', async (req, res) => {
   // amountはここで算出する
   const amount = 1000;
@@ -117,6 +114,13 @@ app.post('/webhook', bodyParser.raw({type: 'application/json'}), (request, respo
   response.json({received: true});
 });
 
+const handleSuccessfulPaymentIntent = (connectedAccountId, paymentIntent) => {
+  // Fulfill the purchase.
+  console.log('Connected account ID: ' + connectedAccountId);
+  console.log(JSON.stringify(paymentIntent));
+}
+
+/*
 app.get("/oauth", async (req, res) => {
   // TODO oauth urlにstateをつけて、チェックを行う。
   // if (req.session.state != req.query.state) {
@@ -146,12 +150,7 @@ app.get("/oauth", async (req, res) => {
   // TODO ユーザー情報と紐付けを行う。
   res.send("OK")
 });
-
-const handleSuccessfulPaymentIntent = (connectedAccountId, paymentIntent) => {
-  // Fulfill the purchase.
-  console.log('Connected account ID: ' + connectedAccountId);
-  console.log(JSON.stringify(paymentIntent));
-}
+*/
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`)
