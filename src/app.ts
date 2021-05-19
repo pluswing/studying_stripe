@@ -1,9 +1,20 @@
-const express = require('express')
-const session = require("express-session")
-const bodyParser = require("body-parser");
-const stripe = require('stripe')(process.env["SECRET_KEY"])
+import express from 'express';
+import session from "express-session"
+import bodyParser from "body-parser"
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env["SECRET_KEY"] || "", {
+  apiVersion: "2020-08-27"
+})
+
 const app = express()
 const port = 8000
+
+declare module 'express-session' {
+  interface SessionData {
+    accountID: string;
+  }
+}
 
 app.use(
   session({
@@ -93,7 +104,7 @@ app.get('/secret', async (req, res) => {
 
 const endpointSecret = 'whsec_...';
 app.post('/webhook', bodyParser.raw({type: 'application/json'}), (request, response) => {
-  const sig = request.headers['stripe-signature'];
+  const sig = request.headers['stripe-signature'] || "";
 
   let event;
 
@@ -114,7 +125,7 @@ app.post('/webhook', bodyParser.raw({type: 'application/json'}), (request, respo
   response.json({received: true});
 });
 
-const handleSuccessfulPaymentIntent = (connectedAccountId, paymentIntent) => {
+const handleSuccessfulPaymentIntent = (connectedAccountId: string | undefined, paymentIntent: Stripe.Event.Data.Object) => {
   // Fulfill the purchase.
   console.log('Connected account ID: ' + connectedAccountId);
   console.log(JSON.stringify(paymentIntent));
