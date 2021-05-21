@@ -1,9 +1,10 @@
 version: "3.8"
 services:
-  app:
-    build: .
+  backend:
+    build:
+      context: ./backend
     volumes:
-      - ./:/app
+      - ./backend:/app
     ports:
       - 8000:8000
     working_dir: /app
@@ -11,3 +12,12 @@ services:
     environment:
       SECRET_KEY: XXX
       API_KEY: YYY
+  front:
+    build:
+      context: ./front
+    volumes:
+      - ./front:/app
+    ports:
+      - 3000:3000
+    working_dir: /app
+    tty: true

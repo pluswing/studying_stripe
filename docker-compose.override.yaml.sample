@@ -1,5 +1,5 @@
 services:
-  app:
+  backend:
     environment:
       SECRET_KEY: XXX
       API_KEY: YYY

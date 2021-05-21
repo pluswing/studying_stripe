@@ -37,7 +37,7 @@ const findUserByLoginId = (loginId: string): User | undefined => {
   return users.find((u) => u.loginId == loginId);
 };
 // 会員登録
-const register = (loginId: string, password: string): User => {
+export const register = (loginId: string, password: string): User => {
   if (findUserByLoginId(loginId)) {
     throw new Error('duplicated loginId');
   }
@@ -51,7 +51,7 @@ const register = (loginId: string, password: string): User => {
   return user;
 };
 // ログイン
-const login = (loginId: string, password: string): User => {
+export const login = (loginId: string, password: string): User => {
   const user = findUserByLoginId(loginId);
   if (!user) {
     throw new Error('user not found.');
