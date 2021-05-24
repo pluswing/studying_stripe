@@ -1,8 +1,9 @@
 import express from 'express';
 import session from 'express-session';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import Stripe from 'stripe';
-import { register, login } from "./db"
+import { register, login } from './db';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
   apiVersion: '2020-08-27',
@@ -17,6 +18,7 @@ declare module 'express-session' {
   }
 }
 
+app.use(cors());
 app.use(
   session({
     secret: 'Set this to a random string that is kept secure',
@@ -35,20 +37,20 @@ app.use((req, res, next) => {
 });
 
 app.post('/login', (req, res) => {
-  const data = req.json()
+  const data = req.body;
   try {
-    const user = login(data.loginId, data.password)
+    const user = login(data.loginId, data.password);
     res.json({
       user: {
-        id: user.id
-      }
-    })
+        id: user.id, // TODO アクセストークンを発行して返す
+      },
+    });
   } catch (e) {
     res.status(400).json({
-      error: e.message
-    })
+      error: e.message,
+    });
   }
-})
+});
 
 app.get('/', async (req, res) => {
   const account = await stripe.accounts.create({
