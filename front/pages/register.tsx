@@ -1,15 +1,17 @@
 import Head from 'next/head'
-import Link from 'next/link'
+import { useRouter } from 'next/router';
 import { useCallback, useState } from 'react';
 
 export default function Login() {
 
   const [loginId, setLoginId] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const router = useRouter();
 
-  const doLogin = useCallback(async (e) => {
+  const doRegister = useCallback(async (e) => {
     e.preventDefault();
-    const res = await fetch("http://localhost:8000/login", {
+    const res = await fetch("http://localhost:8000/register", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -19,16 +21,29 @@ export default function Login() {
         password
       })
     })
-    console.log(await res.json())
+    const data = await res.json()
+    if (data.error) {
+      setError(data.error)
+      return
+    }
+
+    // 会員登録完了
+    router.push("/login")
+
   }, [loginId, password])
+
+  const errorStyle = {
+    color:"red"
+  }
 
   return (
     <div>
       <Head>
-        <title>LOGIN</title>
+        <title>会員登録</title>
       </Head>
-      <h1>ログイン</h1>
-      <form onSubmit={doLogin}>
+      <h1>会員登録</h1>
+      <div style={errorStyle}>{error}</div>
+      <form onSubmit={doRegister}>
         <label>
           LOGIN ID:
           <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} />
@@ -40,8 +55,6 @@ export default function Login() {
         </label>
         <br/>
         <input type="submit" value="Submit" />
-        <br/>
-        <Link href="/register"><a>会員登録はこちら</a></Link>
       </form>
     </div>
   );

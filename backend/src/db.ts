@@ -1,9 +1,15 @@
 import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 interface User {
   id: number;
   loginId: string;
   password: string;
+}
+
+interface AccessToken {
+  userId: number;
+  accessToken: string;
 }
 
 interface Account {
@@ -58,6 +64,30 @@ export const login = (loginId: string, password: string): User => {
   }
   if (user.password != md5str(password)) {
     throw new Error('user not found.');
+  }
+  return user;
+};
+
+// AccessToken
+let accessTokens: AccessToken[] = [];
+export const issueAccessToken = (user: User): AccessToken => {
+  accessTokens = accessTokens.filter((a) => a.userId != user.id);
+  const at: AccessToken = {
+    userId: user.id,
+    accessToken: uuidv4(),
+  };
+  accessTokens.push(at);
+  return at;
+};
+
+export const accessToken2User = (accessToken: string): User => {
+  const at = accessTokens.find((a) => a.accessToken == accessToken);
+  if (!at) {
+    throw new Error('not logged in');
+  }
+  const user = users.find((u) => u.id == at.userId);
+  if (!user) {
+    throw new Error('not logged in');
   }
   return user;
 };

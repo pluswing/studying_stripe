@@ -3,7 +3,7 @@ import session from 'express-session';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
-import { register, login } from './db';
+import { register, login, issueAccessToken } from './db';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
   apiVersion: '2020-08-27',
@@ -41,9 +41,21 @@ app.post('/login', (req, res) => {
   try {
     const user = login(data.loginId, data.password);
     res.json({
-      user: {
-        id: user.id, // TODO アクセストークンを発行して返す
-      },
+      access_token: issueAccessToken(user),
+    });
+  } catch (e) {
+    res.status(400).json({
+      error: e.message,
+    });
+  }
+});
+
+app.post('/register', (req, res) => {
+  const data = req.body;
+  try {
+    const user = register(data.loginId, data.password);
+    res.json({
+      success: true,
     });
   } catch (e) {
     res.status(400).json({
