@@ -15,6 +15,7 @@ interface AccessToken {
 interface Account {
   userId: number;
   stripeAccountId: string;
+  draft: boolean;
 }
 
 interface Product {
@@ -93,5 +94,28 @@ export const accessToken2User = (accessToken: string): User => {
 };
 
 // Account
+const accounts: Account[] = [];
+export const findAccount = (user: User): Account | undefined => {
+  return accounts.find((a) => a.userId == user.id);
+};
+
+export const connectAccount = (
+  user: User,
+  stripeAccountId: string
+): Account => {
+  const a: Account = {
+    userId: user.id,
+    stripeAccountId,
+    draft: true,
+  };
+  accounts.push(a);
+  return a;
+};
+
+export const removeDraft = (account: Account): Account => {
+  account.draft = false;
+  return account;
+};
+
 // Product
 // Settlement

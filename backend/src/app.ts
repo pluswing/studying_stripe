@@ -3,7 +3,16 @@ import session from 'express-session';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import Stripe from 'stripe';
-import { register, login, issueAccessToken, accessToken2User } from './db';
+import {
+  register,
+  login,
+  issueAccessToken,
+  accessToken2User,
+  findAccount,
+  connectAccount,
+  removeDraft,
+} from './db';
+import { connect } from 'http2';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
   apiVersion: '2020-08-27',
@@ -78,53 +87,61 @@ app.post('/user', async (req, res) => {
   }
 });
 
-app.get('/', async (req, res) => {
-  const account = await stripe.accounts.create({
-    type: 'standard',
-  });
+app.post('/connect_stripe', async (req, res) => {
+  try {
+    const aceessToken = req.header('Authorization') || '';
+    const user = accessToken2User(aceessToken);
 
-  const accountId = account.id;
-  req.session.accountID = accountId;
+    // すでにAccountがあれば、↓はやらない
+    let account = findAccount(user);
+    if (!account) {
+      // Accountのデータを作る（ドラフト状態）
+      const res = await stripe.accounts.create({
+        type: 'standard',
+      });
+      account = connectAccount(user, res.id);
+    }
 
-  const accountLinks = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `http://localhost:${port}/reauth`,
-    return_url: `http://localhost:${port}/return`,
-    type: 'account_onboarding',
-  });
+    const accountLinks = await stripe.accountLinks.create({
+      account: account.stripeAccountId,
+      refresh_url: `http://localhost:3000/reauth`,
+      return_url: `http://localhost:3000/return`,
+      type: 'account_onboarding',
+    });
 
-  res.redirect(accountLinks.url);
+    res.json({
+      url: accountLinks.url,
+    });
+  } catch (e) {
+    res.status(400).json({
+      error: e.message,
+    });
+  }
 });
 
-app.get('/reauth', async (req, res) => {
-  const accountId = req.session.accountID;
+app.post('/done_connected', async (req, res) => {
+  try {
+    const aceessToken = req.header('Authorization') || '';
+    const user = accessToken2User(aceessToken);
+    const account = findAccount(user);
 
-  if (!accountId) {
-    res.redirect('/');
-    return;
+    if (!account) {
+      throw new Error('account not found');
+    }
+
+    const r = await stripe.accounts.retrieve(account.stripeAccountId);
+
+    if (r.charges_enabled && r.details_submitted) {
+      removeDraft(account);
+    }
+    res.json({
+      success: true,
+    });
+  } catch (e) {
+    res.status(400).json({
+      error: e.message,
+    });
   }
-
-  const accountLinks = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `http://localhost:${port}/reauth`,
-    return_url: `http://localhost:${port}/return`,
-    type: 'account_onboarding',
-  });
-
-  res.redirect(accountLinks.url);
-});
-
-app.get('/return', async (req, res) => {
-  const accountId = req.session.accountID;
-  if (!accountId) {
-    res.redirect('/');
-    return;
-  }
-  const account = await stripe.accounts.retrieve(accountId);
-  // TODO charges_enabled, details_submittedを見て
-  // 登録が正常に行われたかを確認する必要がある。
-  console.log(account);
-  res.send('return');
 });
 
 app.get('/secret', async (req, res) => {
