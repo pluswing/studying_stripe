@@ -1,11 +1,14 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useCallback, useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function Login() {
 
   const [loginId, setLoginId] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const router = useRouter();
 
   const doLogin = useCallback(async (e) => {
     e.preventDefault();
@@ -19,7 +22,15 @@ export default function Login() {
         password
       })
     })
-    console.log(await res.json())
+    const data = await res.json()
+    if (data.error) {
+      setError(data.error)
+      return
+    }
+
+    // ログイン完了
+    localStorage.setItem("access_token", data.accessToken)
+    router.push("/mypage")
   }, [loginId, password])
 
   return (
@@ -28,6 +39,7 @@ export default function Login() {
         <title>LOGIN</title>
       </Head>
       <h1>ログイン</h1>
+      <div className="text-red-400">{error}</div>
       <form onSubmit={doLogin}>
         <label>
           LOGIN ID:
@@ -46,4 +58,3 @@ export default function Login() {
     </div>
   );
 }
-

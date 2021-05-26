@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { useRouter } from 'next/router';
 import { useCallback, useState } from 'react';
 
-export default function Login() {
+export default function Register() {
 
   const [loginId, setLoginId] = useState("")
   const [password, setPassword] = useState("")
@@ -32,17 +32,13 @@ export default function Login() {
 
   }, [loginId, password])
 
-  const errorStyle = {
-    color:"red"
-  }
-
   return (
     <div>
       <Head>
         <title>会員登録</title>
       </Head>
       <h1>会員登録</h1>
-      <div style={errorStyle}>{error}</div>
+      <div className="text-red-400">{error}</div>
       <form onSubmit={doRegister}>
         <label>
           LOGIN ID:
