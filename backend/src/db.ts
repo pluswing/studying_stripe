@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
-interface User {
+export interface User {
   id: number;
   loginId: string;
   password: string;

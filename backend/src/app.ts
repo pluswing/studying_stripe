@@ -1,7 +1,8 @@
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import session from 'express-session';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import 'express-async-errors';
 import Stripe from 'stripe';
 import {
   register,
@@ -11,8 +12,8 @@ import {
   findAccount,
   connectAccount,
   removeDraft,
+  User,
 } from './db';
-import { connect } from 'http2';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
   apiVersion: '2020-08-27',
@@ -24,6 +25,13 @@ const port = 8000;
 declare module 'express-session' {
   interface SessionData {
     accountID: string;
+  }
+}
+declare global {
+  namespace Express {
+    interface Request {
+      authUser: User;
+    }
   }
 }
 
@@ -44,105 +52,89 @@ app.use((req, res, next) => {
     bodyParser.json()(req, res, next);
   }
 });
+app.use((req, res, next) => {
+  if (['/login', '/register'].includes(req.originalUrl)) {
+    // アクセストークン不要
+    next();
+  } else {
+    try {
+      const aceessToken = req.header('Authorization') || '';
+      const user = accessToken2User(aceessToken);
+      req.authUser = user;
+      next();
+    } catch (e) {
+      res.status(403).json({
+        error: e.message,
+      });
+    }
+  }
+});
 
 app.post('/login', (req, res) => {
   const data = req.body;
-  try {
-    const user = login(data.loginId, data.password);
-    res.json({
-      accessToken: issueAccessToken(user).accessToken,
-    });
-  } catch (e) {
-    res.status(400).json({
-      error: e.message,
-    });
-  }
+  const user = login(data.loginId, data.password);
+  res.json({
+    accessToken: issueAccessToken(user).accessToken,
+  });
 });
 
 app.post('/register', (req, res) => {
   const data = req.body;
-  try {
-    const user = register(data.loginId, data.password);
-    res.json({
-      success: true,
-    });
-  } catch (e) {
-    res.status(400).json({
-      error: e.message,
-    });
-  }
+  const user = register(data.loginId, data.password);
+  res.json({
+    success: true,
+  });
 });
 
 app.post('/user', async (req, res) => {
-  const aceessToken = req.header('Authorization') || '';
-  try {
-    const user = accessToken2User(aceessToken);
-    res.json({
-      user, // TODO 不要な情報は省く
-    });
-  } catch (e) {
-    res.status(400).json({
-      error: e.message,
-    });
-  }
+  const account = findAccount(req.authUser);
+  res.json({
+    user: req.authUser, // TODO 不要な情報は省く
+    account,
+  });
 });
 
 app.post('/connect_stripe', async (req, res) => {
-  try {
-    const aceessToken = req.header('Authorization') || '';
-    const user = accessToken2User(aceessToken);
-
-    // すでにAccountがあれば、↓はやらない
-    let account = findAccount(user);
-    if (!account) {
-      // Accountのデータを作る（ドラフト状態）
-      const res = await stripe.accounts.create({
-        type: 'standard',
-      });
-      account = connectAccount(user, res.id);
-    }
-
-    const accountLinks = await stripe.accountLinks.create({
-      account: account.stripeAccountId,
-      refresh_url: `http://localhost:3000/reauth`,
-      return_url: `http://localhost:3000/return`,
-      type: 'account_onboarding',
+  // すでにAccountがあれば、↓はやらない
+  let account = findAccount(req.authUser);
+  if (!account) {
+    // Accountのデータを作る（ドラフト状態）
+    const res = await stripe.accounts.create({
+      type: 'standard',
     });
-
-    res.json({
-      url: accountLinks.url,
-    });
-  } catch (e) {
-    res.status(400).json({
-      error: e.message,
-    });
+    account = connectAccount(req.authUser, res.id);
   }
+
+  const accountLinks = await stripe.accountLinks.create({
+    account: account.stripeAccountId,
+    refresh_url: `http://localhost:3000/mypage`,
+    return_url: `http://localhost:3000/return`,
+    type: 'account_onboarding',
+  });
+
+  res.json({
+    url: accountLinks.url,
+  });
 });
 
 app.post('/done_connected', async (req, res) => {
-  try {
-    const aceessToken = req.header('Authorization') || '';
-    const user = accessToken2User(aceessToken);
-    const account = findAccount(user);
+  const account = findAccount(req.authUser);
 
-    if (!account) {
-      throw new Error('account not found');
-    }
-
-    const r = await stripe.accounts.retrieve(account.stripeAccountId);
-
-    if (r.charges_enabled && r.details_submitted) {
-      removeDraft(account);
-    }
-    res.json({
-      success: true,
-    });
-  } catch (e) {
-    res.status(400).json({
-      error: e.message,
-    });
+  if (!account) {
+    throw new Error('account not found');
   }
+
+  const r = await stripe.accounts.retrieve(account.stripeAccountId);
+
+  if (r.charges_enabled && r.details_submitted) {
+    removeDraft(account);
+  }
+  res.json({
+    success: true,
+  });
 });
+
+// ----------------------------------------------
 
 app.get('/secret', async (req, res) => {
   // amountはここで算出する
@@ -232,6 +224,12 @@ app.get("/oauth", async (req, res) => {
   res.send("OK")
 });
 */
+
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  return res.status(400).json({
+    error: err.message,
+  });
+});
 
 app.listen(port, () => {
   console.log(`Example app listening at http://localhost:${port}`);

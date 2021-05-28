@@ -1,8 +1,15 @@
 import Head from 'next/head'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
 
 export default function Mypage() {
+  const [user, setUser] = useState({
+    loginId: ""
+  })
+  const [account, setAccount] = useState({
+    userId: ""
+  })
+
   const router = useRouter();
   useEffect(() => {
     (async () => {
@@ -19,6 +26,8 @@ export default function Mypage() {
         router.replace("/login")
         return
       }
+      setUser(data.user)
+      setAccount(data.account || {userId: ""})
 
       // TODO 他マイページに必要なデータを読み込む。
     })()
@@ -49,6 +58,8 @@ return (
         <title>mypage</title>
       </Head>
       <h1>MYPAGE</h1>
+      ようこそ！{user.loginId}さん<br/>
+      Stripe連携は{account.userId ? "されています": "されていません"}<br/>
       <a onClick={connectStripe}>Stripeと連携</a>
     </div>
   )
