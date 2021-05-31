@@ -118,4 +118,51 @@ export const removeDraft = (account: Account): Account => {
 };
 
 // Product
+const products: Product[] = [];
+// 商品登録
+export const registerProduct = (
+  user: User,
+  name: string,
+  amount: number,
+  url: string
+): Product => {
+  // MEMO validation
+
+  if (!name) {
+    throw Error('required name');
+  }
+  if (!amount) {
+    throw Error('required amount');
+  }
+  if (amount < 0) {
+    throw Error('invalid amount');
+  }
+  if (!url) {
+    throw Error('required url');
+  }
+
+  const p: Product = {
+    id: products.length + 1,
+    userId: user.id,
+    name,
+    amount,
+    url,
+  };
+  products.push(p);
+  return p;
+};
+
+// 商品一覧（ユーザ毎）
+export const listProductByUser = (user: User): Product[] => {
+  return products.filter((p) => p.userId == user.id);
+};
+
+// 商品検索（全部)
+export const listProducts = (query: string): Product[] => {
+  if (!query) {
+    return products;
+  }
+  return products.filter((p) => p.name.indexOf(query) != -1);
+};
+
 // Settlement

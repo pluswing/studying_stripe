@@ -13,6 +13,9 @@ import {
   connectAccount,
   removeDraft,
   User,
+  registerProduct,
+  listProductByUser,
+  listProducts,
 } from './db';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
@@ -53,7 +56,7 @@ app.use((req, res, next) => {
   }
 });
 app.use((req, res, next) => {
-  if (['/login', '/register'].includes(req.originalUrl)) {
+  if (['/login', '/register', '/list_products'].includes(req.originalUrl)) {
     // アクセストークン不要
     next();
   } else {
@@ -131,6 +134,26 @@ app.post('/done_connected', async (req, res) => {
   }
   res.json({
     success: true,
+  });
+});
+
+app.post('register_product', (req, res) => {
+  const data = req.body;
+  registerProduct(req.authUser, data.name, parseInt(data.amount, 10), data.url);
+  res.json({
+    success: true,
+  });
+});
+
+app.post('list_products_by_user', (req, res) => {
+  res.json({
+    products: listProductByUser(req.authUser),
+  });
+});
+
+app.post('list_products', (req, res) => {
+  res.json({
+    products: listProducts(req.body.query),
   });
 });
 
