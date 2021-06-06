@@ -129,16 +129,16 @@ export const registerProduct = (
   // MEMO validation
 
   if (!name) {
-    throw Error('required name');
+    throw new Error('required name');
   }
   if (!amount) {
-    throw Error('required amount');
+    throw new Error('required amount');
   }
   if (amount < 0) {
-    throw Error('invalid amount');
+    throw new Error('invalid amount');
   }
   if (!url) {
-    throw Error('required url');
+    throw new Error('required url');
   }
 
   const p: Product = {

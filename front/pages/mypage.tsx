@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
+import AddProduct from "../components/AddProduct"
 
 interface Product {
   id: number;
@@ -20,38 +21,45 @@ export default function Mypage() {
   const [products, setProducts] = useState([] as Product[])
 
   const router = useRouter();
+
   useEffect(() => {
     (async () => {
-      const res =  await fetch("http://localhost:8000/user", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': localStorage.getItem("access_token")
-        },
-        body: JSON.stringify({})
-      })
-      const data = await res.json()
-      if (data.error) {
-        router.replace("/login")
-        return
-      }
-      setUser(data.user)
-      setAccount(data.account || {userId: ""})
-
-      // 商品一覧取得
-      const res2 =  await fetch("http://localhost:8000/list_products_by_user", {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': localStorage.getItem("access_token")
-        },
-        body: JSON.stringify({})
-      })
-      const data2 = await res2.json()
-      setProducts(data2.products || [])
+      await fetchUser()
+      await fetchProducts()
     })()
-
   }, [])
+
+  const fetchUser = async () => {
+    const res =  await fetch("http://localhost:8000/user", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({})
+    })
+    const data = await res.json()
+    if (data.error) {
+      router.replace("/login")
+      return
+    }
+    setUser(data.user)
+    setAccount(data.account || {userId: ""})
+  }
+
+  const fetchProducts = async () => {
+    // 商品一覧取得
+    const res2 =  await fetch("http://localhost:8000/list_products_by_user", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({})
+    })
+    const data2 = await res2.json()
+    setProducts(data2.products || [])
+  }
 
   const connectStripe = useCallback(async () => {
     const res =  await fetch("http://localhost:8000/connect_stripe", {
@@ -80,6 +88,8 @@ return (
       ようこそ！{user.loginId}さん<br/>
       Stripe連携は{account.userId ? "されています": "されていません"}<br/>
       <a onClick={connectStripe}>Stripeと連携</a>
+      <hr/>
+      <AddProduct onAdded={fetchProducts}/>
       <hr/>
       {products.map((p) => (
         <div>

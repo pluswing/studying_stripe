@@ -137,7 +137,7 @@ app.post('/done_connected', async (req, res) => {
   });
 });
 
-app.post('register_product', (req, res) => {
+app.post('/register_product', (req, res) => {
   const data = req.body;
   registerProduct(req.authUser, data.name, parseInt(data.amount, 10), data.url);
   res.json({
@@ -145,13 +145,13 @@ app.post('register_product', (req, res) => {
   });
 });
 
-app.post('list_products_by_user', (req, res) => {
+app.post('/list_products_by_user', (req, res) => {
   res.json({
     products: listProductByUser(req.authUser),
   });
 });
 
-app.post('list_products', (req, res) => {
+app.post('/list_products', (req, res) => {
   res.json({
     products: listProducts(req.body.query),
   });
