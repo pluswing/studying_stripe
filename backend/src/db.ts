@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
 
 export interface User {
   id: number;
@@ -39,7 +40,7 @@ const md5str = (str: string): string => {
 };
 
 // User
-const users: User[] = [];
+let users: User[] = [];
 const findUserByLoginId = (loginId: string): User | undefined => {
   return users.find((u) => u.loginId == loginId);
 };
@@ -94,7 +95,7 @@ export const accessToken2User = (accessToken: string): User => {
 };
 
 // Account
-const accounts: Account[] = [];
+let accounts: Account[] = [];
 export const findAccount = (user: User): Account | undefined => {
   return accounts.find((a) => a.userId == user.id);
 };
@@ -118,7 +119,7 @@ export const removeDraft = (account: Account): Account => {
 };
 
 // Product
-const products: Product[] = [];
+let products: Product[] = [];
 // 商品登録
 export const registerProduct = (
   user: User,
@@ -166,3 +167,29 @@ export const listProducts = (query: string): Product[] => {
 };
 
 // Settlement
+
+// general
+export const saveData = () => {
+  fs.writeFileSync(
+    'data.json',
+    JSON.stringify({
+      users,
+      accessTokens,
+      accounts,
+      products,
+    })
+  );
+  console.log('*** DONE SAVE ***');
+};
+
+export const loadData = () => {
+  if (!fs.existsSync('data.json')) {
+    return;
+  }
+  const data = JSON.parse(fs.readFileSync('data.json').toString());
+  users = data.users;
+  accessTokens = data.accessTokens;
+  accounts = data.accounts;
+  products = data.products;
+  console.log('*** DONE LOAD ***');
+};

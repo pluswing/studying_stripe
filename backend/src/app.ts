@@ -16,6 +16,8 @@ import {
   registerProduct,
   listProductByUser,
   listProducts,
+  loadData,
+  saveData,
 } from './db';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
@@ -255,5 +257,14 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.listen(port, () => {
+  loadData();
   console.log(`Example app listening at http://localhost:${port}`);
+});
+
+process.on('exit', () => {
+  saveData();
+});
+
+process.on('SIGINT', () => {
+  process.exit();
 });
