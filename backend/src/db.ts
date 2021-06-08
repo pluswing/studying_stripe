@@ -70,6 +70,14 @@ export const login = (loginId: string, password: string): User => {
   return user;
 };
 
+export const findUserById = (id: number): User => {
+  const u = users.find((u) => u.id == id);
+  if (!u) {
+    throw new Error('user not found');
+  }
+  return u;
+};
+
 // AccessToken
 let accessTokens: AccessToken[] = [];
 export const issueAccessToken = (user: User): AccessToken => {
@@ -164,6 +172,14 @@ export const listProducts = (query: string): Product[] => {
     return products;
   }
   return products.filter((p) => p.name.indexOf(query) != -1);
+};
+
+export const findProduct = (id: number): Product => {
+  const p = products.find((p) => p.id == id);
+  if (!p) {
+    throw new Error('product not found');
+  }
+  return p;
 };
 
 // Settlement

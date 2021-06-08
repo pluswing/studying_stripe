@@ -1,7 +1,8 @@
 import Head from 'next/head'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
-import AddProduct from "../components/AddProduct"
+import {Elements, CardElement} from '@stripe/react-stripe-js';
+import {loadStripe} from '@stripe/stripe-js';
 
 interface Product {
   id: number;
@@ -13,6 +14,7 @@ interface Product {
 
 export default function Products() {
   const [products, setProducts] = useState([] as Product[])
+  const [stripePromise, setStripePromise] = useState({} as any)
 
   const router = useRouter();
 
@@ -36,6 +38,24 @@ export default function Products() {
     const data = await res.json()
     setProducts(data.products || [])
   }
+
+  const doBuy = async (productId: number) => {
+    const res =  await fetch("http://localhost:8000/buy_products", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        productId
+      })
+    })
+    const data = await res.json()
+
+    const stripePromise = loadStripe(data.api_key, {
+      stripeAccount: '/* ログインしてないとだめ？ */'
+    });
+    setStripePromise(stripePromise)
+  }
 return (
     <div>
       <Head>
@@ -46,9 +66,13 @@ return (
         <div className="border-gray-800 border-2 p-2 m-1">
           <div>{p.name}</div>
           <div>{p.amount}</div>
+          <div><button onClick={() => {doBuy(p.id)}}>購入</button></div>
         </div>
       ))
       }
+      <Elements stripe={stripePromise}>
+        <CardElement />
+      </Elements>
     </div>
   )
 }

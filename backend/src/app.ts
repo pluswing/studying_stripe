@@ -18,6 +18,8 @@ import {
   listProducts,
   loadData,
   saveData,
+  findProduct,
+  findUserById,
 } from './db';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
@@ -161,10 +163,18 @@ app.post('/list_products', (req, res) => {
 
 // ----------------------------------------------
 
-app.get('/secret', async (req, res) => {
-  // amountはここで算出する
-  const amount = 1000;
-  const fee = amount * 0.3; // TODO 額に応じて計算する
+app.post('/buy_products', async (req, res) => {
+  // { "product_id": 999 }
+  const product = findProduct(req.body.product_id);
+  const user = findUserById(product.userId);
+  const account = findAccount(user);
+  if (!account) {
+    // mypage側(/register_product)で防ぐべき。
+    throw new Error('invalid status');
+  }
+
+  const amount = product.amount;
+  const fee = amount * 0.1;
   const intent = await stripe.paymentIntents.create(
     {
       payment_method_types: ['card'],
@@ -173,7 +183,7 @@ app.get('/secret', async (req, res) => {
       application_fee_amount: fee,
     },
     {
-      stripeAccount: '売り手のアカウントID',
+      stripeAccount: account.stripeAccountId,
     }
   );
   res.json({
