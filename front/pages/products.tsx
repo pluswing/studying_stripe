@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
 import {Elements, CardElement} from '@stripe/react-stripe-js';
 import {loadStripe} from '@stripe/stripe-js';
+import { API_KEY } from "../components/apikey"
+import CheckoutFrom from "../components/CheckoutForm"
 
 interface Product {
   id: number;
@@ -14,9 +16,13 @@ interface Product {
 
 export default function Products() {
   const [products, setProducts] = useState([] as Product[])
-  const [stripePromise, setStripePromise] = useState({} as any)
+  const [clientSecret, setClientSecret] = useState("")
 
   const router = useRouter();
+
+  const stripePromise = loadStripe(API_KEY, {
+    // stripeAccount: '/* ログインしてないとだめ？ */'
+  });
 
   useEffect(() => {
     (async () => {
@@ -46,15 +52,11 @@ export default function Products() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        productId
+        product_id: productId
       })
     })
     const data = await res.json()
-
-    const stripePromise = loadStripe(data.api_key, {
-      stripeAccount: '/* ログインしてないとだめ？ */'
-    });
-    setStripePromise(stripePromise)
+    setClientSecret(data.client_secret)
   }
 return (
     <div>
@@ -70,9 +72,11 @@ return (
         </div>
       ))
       }
+      {clientSecret ? (
       <Elements stripe={stripePromise}>
-        <CardElement />
+        <CheckoutFrom client_secret={clientSecret}/>
       </Elements>
+      ) : (<div/>)}
     </div>
   )
 }

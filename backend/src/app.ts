@@ -60,7 +60,11 @@ app.use((req, res, next) => {
   }
 });
 app.use((req, res, next) => {
-  if (['/login', '/register', '/list_products'].includes(req.originalUrl)) {
+  if (
+    ['/login', '/register', '/list_products', '/buy_products'].includes(
+      req.originalUrl
+    )
+  ) {
     // アクセストークン不要
     next();
   } else {
