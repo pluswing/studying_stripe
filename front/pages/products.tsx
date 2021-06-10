@@ -1,9 +1,8 @@
 import Head from 'next/head'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
-import {Elements, CardElement} from '@stripe/react-stripe-js';
+import {Elements} from '@stripe/react-stripe-js';
 import {loadStripe} from '@stripe/stripe-js';
-import { API_KEY } from "../components/apikey"
 import CheckoutFrom from "../components/CheckoutForm"
 
 interface Product {
@@ -16,13 +15,10 @@ interface Product {
 
 export default function Products() {
   const [products, setProducts] = useState([] as Product[])
+  const [stripePromise, setStripePromise] = useState({} as any)
   const [clientSecret, setClientSecret] = useState("")
 
   const router = useRouter();
-
-  const stripePromise = loadStripe(API_KEY, {
-    // stripeAccount: '/* ログインしてないとだめ？ */'
-  });
 
   useEffect(() => {
     (async () => {
@@ -56,6 +52,10 @@ export default function Products() {
       })
     })
     const data = await res.json()
+    const stripePromise = loadStripe(data.api_key, {
+      stripeAccount: data.stripe_account
+    });
+    setStripePromise(stripePromise)
     setClientSecret(data.client_secret)
   }
 return (
@@ -72,7 +72,7 @@ return (
         </div>
       ))
       }
-      {clientSecret ? (
+      {stripePromise && clientSecret ? (
       <Elements stripe={stripePromise}>
         <CheckoutFrom client_secret={clientSecret}/>
       </Elements>

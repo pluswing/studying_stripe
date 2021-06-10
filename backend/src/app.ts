@@ -61,9 +61,13 @@ app.use((req, res, next) => {
 });
 app.use((req, res, next) => {
   if (
-    ['/login', '/register', '/list_products', '/buy_products'].includes(
-      req.originalUrl
-    )
+    [
+      '/login',
+      '/register',
+      '/list_products',
+      '/buy_products',
+      '/webhook',
+    ].includes(req.originalUrl)
   ) {
     // アクセストークン不要
     next();
@@ -165,8 +169,6 @@ app.post('/list_products', (req, res) => {
   });
 });
 
-// ----------------------------------------------
-
 app.post('/buy_products', async (req, res) => {
   // { "product_id": 999 }
   const product = findProduct(req.body.product_id);
@@ -191,6 +193,7 @@ app.post('/buy_products', async (req, res) => {
     }
   );
   res.json({
+    stripe_account: account.stripeAccountId,
     client_secret: intent.client_secret,
     api_key: process.env['API_KEY'],
   });
@@ -231,38 +234,6 @@ const handleSuccessfulPaymentIntent = (
   console.log('Connected account ID: ' + connectedAccountId);
   console.log(JSON.stringify(paymentIntent));
 };
-
-/*
-app.get("/oauth", async (req, res) => {
-  // TODO oauth urlにstateをつけて、チェックを行う。
-  // if (req.session.state != req.query.state) {
-  //   // エラーにする
-  // }
-
-  if (req.query.error) {
-    res.send(req.query.error)
-    return
-  }
-
-  const code = req.query.code
-  const response = await stripe.oauth.token({
-    grant_type: 'authorization_code',
-    code,
-  });
-
-  console.log(response)
-  var connectedAccountId = response.stripe_user_id;
-
-  const account = await stripe.accounts.retrieve(
-    connectedAccountId
-  );
-  // TODO charges_enabled, details_submittedを見て
-  // 登録が正常に行われたかを確認する必要がある。
-  console.log(account)
-  // TODO ユーザー情報と紐付けを行う。
-  res.send("OK")
-});
-*/
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   return res.status(400).json({
