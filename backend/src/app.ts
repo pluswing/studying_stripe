@@ -115,7 +115,7 @@ app.post('/connect_stripe', async (req, res) => {
   if (!account) {
     // Accountのデータを作る（ドラフト状態）
     const res = await stripe.accounts.create({
-      type: 'standard',
+      type: 'express',
     });
     account = connectAccount(req.authUser, res.id);
   }
