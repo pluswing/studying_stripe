@@ -20,6 +20,8 @@ import {
   saveData,
   findProduct,
   findUserById,
+  createOrder,
+  paidOrder,
 } from './db';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
@@ -192,6 +194,13 @@ app.post('/buy_products', async (req, res) => {
       stripeAccount: account.stripeAccountId,
     }
   );
+
+  if (!intent.client_secret) {
+    throw new Error('stripe error');
+  }
+
+  createOrder(product, intent.client_secret);
+
   res.json({
     stripe_account: account.stripeAccountId,
     client_secret: intent.client_secret,
@@ -219,21 +228,14 @@ app.post(
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;
       const connectedAccountId = event.account;
-      handleSuccessfulPaymentIntent(connectedAccountId, paymentIntent);
+      // TODO 要確認
+      // @ts-ignore
+      paidOrder(paymentIntent.client_secret);
     }
 
     response.json({ received: true });
   }
 );
-
-const handleSuccessfulPaymentIntent = (
-  connectedAccountId: string | undefined,
-  paymentIntent: Stripe.Event.Data.Object
-) => {
-  // Fulfill the purchase.
-  console.log('Connected account ID: ' + connectedAccountId);
-  console.log(JSON.stringify(paymentIntent));
-};
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   return res.status(400).json({

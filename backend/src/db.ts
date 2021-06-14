@@ -27,11 +27,13 @@ interface Product {
   url: string;
 }
 
-interface Settlement {
+interface Order {
   id: number;
   productId: number;
-  userId: number;
+  // userId: number;
   createdAt: Date;
+  status: 'order' | 'paid';
+  clientSecret: string;
 }
 
 // util
@@ -182,7 +184,33 @@ export const findProduct = (id: number): Product => {
   return p;
 };
 
-// Settlement
+// Order
+let orders: Order[] = [];
+export const createOrder = (product: Product, clientSecret: string): Order => {
+  const o: Order = {
+    id: orders.length + 1,
+    productId: product.id,
+    // userId: number;
+    createdAt: new Date(),
+    status: 'order',
+    clientSecret,
+  };
+  orders.push(o);
+  return o;
+};
+
+export const paidOrder = (clientSecret: string): void => {
+  const o = orders.find((o) => o.clientSecret == clientSecret);
+  if (!o) {
+    throw new Error('order not found.');
+  }
+  o.status = 'paid';
+};
+
+export const listOrder = (user: User): Order[] => {
+  const productIds = listProductByUser(user).map((p) => p.id);
+  return orders.filter((o) => productIds.includes(o.productId));
+};
 
 // general
 export const saveData = () => {
@@ -193,6 +221,7 @@ export const saveData = () => {
       accessTokens,
       accounts,
       products,
+      orders,
     })
   );
   console.log('*** DONE SAVE ***');
@@ -207,5 +236,6 @@ export const loadData = () => {
   accessTokens = data.accessTokens;
   accounts = data.accounts;
   products = data.products;
+  orders = data.orders;
   console.log('*** DONE LOAD ***');
 };
