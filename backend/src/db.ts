@@ -13,13 +13,13 @@ interface AccessToken {
   accessToken: string;
 }
 
-interface Account {
+export interface Account {
   userId: number;
   stripeAccountId: string;
   draft: boolean;
 }
 
-interface Product {
+export interface Product {
   id: number;
   userId: number;
   name: string;
@@ -27,7 +27,7 @@ interface Product {
   url: string;
 }
 
-interface Order {
+export interface Order {
   id: number;
   productId: number;
   // userId: number;

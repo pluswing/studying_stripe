@@ -22,7 +22,10 @@ import {
   findUserById,
   createOrder,
   paidOrder,
+  Product,
+  Account,
 } from './db';
+import { v4 as uuidv4 } from 'uuid';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
   apiVersion: '2020-08-27',
@@ -172,37 +175,54 @@ app.post('/list_products', (req, res) => {
 });
 
 app.post('/buy_products', async (req, res) => {
-  // { "product_id": 999 }
-  const product = findProduct(req.body.product_id);
-  const user = findUserById(product.userId);
-  const account = findAccount(user);
-  if (!account) {
-    // mypage側(/register_product)で防ぐべき。
-    throw new Error('invalid status');
+  // { "product_ids": [999] }
+  const items: Array<{ product: Product; account: Account }> = [];
+  for (const id of req.body.product_ids) {
+    const product = findProduct(id);
+    const user = findUserById(product.userId);
+    const account = findAccount(user);
+    if (!account) {
+      // mypage側(/register_product)で防ぐべき。
+      throw new Error('invalid status');
+    }
+    items.push({
+      product,
+      account,
+    });
   }
 
-  const amount = product.amount;
+  const amount = items.reduce((total, item) => {
+    return total + item.product.amount;
+  }, 0);
   const fee = amount * 0.1;
-  const intent = await stripe.paymentIntents.create(
-    {
-      payment_method_types: ['card'],
-      amount,
-      currency: 'jpy',
-      application_fee_amount: fee,
-    },
-    {
-      stripeAccount: account.stripeAccountId,
-    }
-  );
+
+  const transferGroup = uuidv4();
+
+  const intent = await stripe.paymentIntents.create({
+    amount,
+    currency: 'jpy',
+    payment_method_types: ['card'],
+    transfer_group: transferGroup,
+    application_fee_amount: fee,
+  });
 
   if (!intent.client_secret) {
     throw new Error('stripe error');
   }
 
-  createOrder(product, intent.client_secret);
+  for (const item of items) {
+    const transfer = await stripe.transfers.create({
+      amount: item.product.amount,
+      currency: 'jpy',
+      destination: item.account.stripeAccountId,
+      transfer_group: transferGroup,
+    });
+
+    createOrder(item.product, intent.client_secret);
+  }
 
   res.json({
-    stripe_account: account.stripeAccountId,
+    // stripe_account: account.stripeAccountId,
     client_secret: intent.client_secret,
     api_key: process.env['API_KEY'],
   });
