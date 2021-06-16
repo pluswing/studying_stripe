@@ -232,10 +232,10 @@ export const loadData = () => {
     return;
   }
   const data = JSON.parse(fs.readFileSync('data.json').toString());
-  users = data.users;
-  accessTokens = data.accessTokens;
-  accounts = data.accounts;
-  products = data.products;
-  orders = data.orders;
+  users = data.users || [];
+  accessTokens = data.accessTokens || [];
+  accounts = data.accounts || [];
+  products = data.products || [];
+  orders = data.orders || [];
   console.log('*** DONE LOAD ***');
 };

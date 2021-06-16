@@ -48,13 +48,11 @@ export default function Products() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        product_id: productId
+        product_ids: [productId]
       })
     })
     const data = await res.json()
-    const stripePromise = loadStripe(data.api_key, {
-      stripeAccount: data.stripe_account
-    });
+    const stripePromise = loadStripe(data.api_key);
     setStripePromise(stripePromise)
     setClientSecret(data.client_secret)
   }
