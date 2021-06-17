@@ -24,6 +24,7 @@ import {
   paidOrder,
   Product,
   Account,
+  addOrderItem,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -210,6 +211,11 @@ app.post('/buy_products', async (req, res) => {
 
   console.log('INTENT:');
   console.log(intent);
+
+  const order = createOrder(amount, transferGroup);
+  for (const item of items) {
+    addOrderItem(order, item.product);
+  }
 
   // for (const item of items) {
   //   const transfer = await stripe.transfers.create({

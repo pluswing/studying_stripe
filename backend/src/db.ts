@@ -45,6 +45,12 @@ export interface OrderItem {
   fee: number; // transfer + fee = product.amount
 }
 
+// FIXME
+export interface OrderWithItems {
+  order: Order;
+  items: OrderItem[];
+}
+
 // util
 const md5str = (str: string): string => {
   return crypto.createHash('md5').update(str, 'binary').digest('hex');
@@ -195,31 +201,60 @@ export const findProduct = (id: number): Product => {
 
 // Order
 let orders: Order[] = [];
-export const createOrder = (product: Product, clientSecret: string): Order => {
+export const createOrder = (amount: number, transferGroupId: string): Order => {
   const o: Order = {
     id: orders.length + 1,
-    productId: product.id,
+    amount,
+    transferGroupId,
     // userId: number;
     createdAt: new Date(),
     status: 'order',
-    clientSecret,
+    paidAt: null,
   };
   orders.push(o);
   return o;
 };
 
-export const paidOrder = (clientSecret: string): void => {
-  const o = orders.find((o) => o.clientSecret == clientSecret);
+export const paidOrder = (transferGroupId: string): void => {
+  const o = orders.find((o) => o.transferGroupId == transferGroupId);
   if (!o) {
     throw new Error('order not found.');
   }
   o.status = 'paid';
+  o.paidAt = new Date();
 };
 
-export const listOrder = (user: User): Order[] => {
+export const findOrder = (transferGroupId: string): OrderWithItems => {
+  // TODO implements
+};
+
+let orderItems: OrderItem[] = [];
+export const addOrderItem = (
+  order: Order,
+  product: Product,
+  platformPercent: number = 0.9
+) => {
+  const amount = product.amount;
+  const transfer = Math.ceil(product.amount * platformPercent);
+  const fee = amount - transfer;
+
+  const item: OrderItem = {
+    id: orderItems.length + 1,
+    order_id: order.id,
+    productId: product.id,
+    transfer,
+    fee,
+  };
+  orderItems.push(item);
+  return item;
+};
+
+/*
+export const listOrder = (user: User): OrderWithItems[] => {
   const productIds = listProductByUser(user).map((p) => p.id);
   return orders.filter((o) => productIds.includes(o.productId));
 };
+*/
 
 // general
 export const saveData = () => {
@@ -231,6 +266,7 @@ export const saveData = () => {
       accounts,
       products,
       orders,
+      orderItems,
     })
   );
   console.log('*** DONE SAVE ***');
@@ -246,5 +282,6 @@ export const loadData = () => {
   accounts = data.accounts || [];
   products = data.products || [];
   orders = data.orders || [];
+  orderItems = data.orderItems || [];
   console.log('*** DONE LOAD ***');
 };
