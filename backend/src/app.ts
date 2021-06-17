@@ -191,16 +191,14 @@ app.post('/buy_products', async (req, res) => {
     });
   }
 
-  const amount = Math.floor(
-    items.reduce((total, item) => {
-      return total + item.product.amount;
-    }, 0) * 1.1
-  ); // FIXME 手数料的な。
+  const amount = items.reduce((total, item) => {
+    return total + item.product.amount;
+  }, 0);
 
   const transferGroup = uuidv4();
 
   const intent = await stripe.paymentIntents.create({
-    amount: amount,
+    amount,
     currency: 'jpy',
     payment_method_types: ['card'],
     transfer_group: transferGroup,
@@ -213,19 +211,19 @@ app.post('/buy_products', async (req, res) => {
   console.log('INTENT:');
   console.log(intent);
 
-  for (const item of items) {
-    const transfer = await stripe.transfers.create({
-      amount: item.product.amount,
-      currency: 'jpy',
-      destination: item.account.stripeAccountId,
-      transfer_group: transferGroup,
-      source_transaction: intent.client_secret, // CARGE_ID
-    });
-    console.log('transfer:');
-    console.log(transfer);
+  // for (const item of items) {
+  //   const transfer = await stripe.transfers.create({
+  //     amount: item.product.amount * 0.9, // FIXME
+  //     currency: 'jpy',
+  //     destination: item.account.stripeAccountId,
+  //     transfer_group: transferGroup,
+  //     source_transaction: intent.client_secret, // CARGE_ID
+  //   });
+  //   console.log('transfer:');
+  //   console.log(transfer);
 
-    createOrder(item.product, intent.client_secret);
-  }
+  //   createOrder(item.product, intent.client_secret);
+  // }
 
   res.json({
     client_secret: intent.client_secret,

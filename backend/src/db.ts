@@ -27,13 +27,22 @@ export interface Product {
   url: string;
 }
 
-export interface Order {
+interface Order {
   id: number;
+  transferGroupId: string; // unique
+  amount: number;
+  status: 'order' | 'paid';
+  createdAt: Date;
+  paidAt: Date | null;
+}
+
+export interface OrderItem {
+  id: number;
+  order_id: number;
   productId: number;
   // userId: number;
-  createdAt: Date;
-  status: 'order' | 'paid';
-  clientSecret: string;
+  transfer: number;
+  fee: number; // transfer + fee = product.amount
 }
 
 // util
