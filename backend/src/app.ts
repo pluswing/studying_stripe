@@ -25,6 +25,7 @@ import {
   Product,
   Account,
   addOrderItem,
+  findOrder,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -217,20 +218,6 @@ app.post('/buy_products', async (req, res) => {
     addOrderItem(order, item.product);
   }
 
-  // for (const item of items) {
-  //   const transfer = await stripe.transfers.create({
-  //     amount: item.product.amount * 0.9, // FIXME
-  //     currency: 'jpy',
-  //     destination: item.account.stripeAccountId,
-  //     transfer_group: transferGroup,
-  //     source_transaction: intent.client_secret, // CARGE_ID
-  //   });
-  //   console.log('transfer:');
-  //   console.log(transfer);
-
-  //   createOrder(item.product, intent.client_secret);
-  // }
-
   res.json({
     client_secret: intent.client_secret,
     api_key: process.env['API_KEY'],
@@ -241,7 +228,7 @@ const endpointSecret = 'whsec_...';
 app.post(
   '/webhook',
   bodyParser.raw({ type: 'application/json' }),
-  (request, response) => {
+  async (request, response) => {
     const sig = request.headers['stripe-signature'] || '';
 
     let event;
@@ -259,7 +246,27 @@ app.post(
       const connectedAccountId = event.account;
       // TODO 要確認
       // @ts-ignore
-      paidOrder(paymentIntent.client_secret);
+      const transferGroup = paymentIntent.transferGroup;
+      const order = findOrder(transferGroup);
+
+      for (const item of order.items) {
+        const product = findProduct(item.productId);
+        const user = findUserById(product.userId);
+        const account = findAccount(user);
+        if (!account) {
+          throw new Error('invalid status');
+        }
+        const transfer = await stripe.transfers.create({
+          amount: item.transfer,
+          currency: 'jpy',
+          destination: account.stripeAccountId,
+          transfer_group: transferGroup,
+          source_transaction: '', // FIXME CARGE_ID
+        });
+        // FIXME transferの内容をitemsに保存する
+      }
+
+      paidOrder(transferGroup);
     }
 
     response.json({ received: true });

@@ -27,7 +27,7 @@ export interface Product {
   url: string;
 }
 
-interface Order {
+export interface OrderParent {
   id: number;
   transferGroupId: string; // unique
   amount: number;
@@ -38,7 +38,7 @@ interface Order {
 
 export interface OrderItem {
   id: number;
-  order_id: number;
+  parentId: number;
   productId: number;
   // userId: number;
   transfer: number;
@@ -46,8 +46,8 @@ export interface OrderItem {
 }
 
 // FIXME
-export interface OrderWithItems {
-  order: Order;
+export interface Order {
+  parent: OrderParent;
   items: OrderItem[];
 }
 
@@ -200,10 +200,13 @@ export const findProduct = (id: number): Product => {
 };
 
 // Order
-let orders: Order[] = [];
-export const createOrder = (amount: number, transferGroupId: string): Order => {
-  const o: Order = {
-    id: orders.length + 1,
+let orderParents: OrderParent[] = [];
+export const createOrder = (
+  amount: number,
+  transferGroupId: string
+): OrderParent => {
+  const o: OrderParent = {
+    id: orderParents.length + 1,
     amount,
     transferGroupId,
     // userId: number;
@@ -211,12 +214,12 @@ export const createOrder = (amount: number, transferGroupId: string): Order => {
     status: 'order',
     paidAt: null,
   };
-  orders.push(o);
+  orderParents.push(o);
   return o;
 };
 
 export const paidOrder = (transferGroupId: string): void => {
-  const o = orders.find((o) => o.transferGroupId == transferGroupId);
+  const o = orderParents.find((o) => o.transferGroupId == transferGroupId);
   if (!o) {
     throw new Error('order not found.');
   }
@@ -224,23 +227,31 @@ export const paidOrder = (transferGroupId: string): void => {
   o.paidAt = new Date();
 };
 
-export const findOrder = (transferGroupId: string): OrderWithItems => {
-  // TODO implements
+export const findOrder = (transferGroupId: string): Order => {
+  const parent = orderParents.find((o) => o.transferGroupId == transferGroupId);
+  if (!parent) {
+    throw new Error('order not found.');
+  }
+  const items = orderItems.filter((i) => i.parentId == parent?.id);
+
+  return {
+    parent,
+    items,
+  } as Order;
 };
 
 let orderItems: OrderItem[] = [];
 export const addOrderItem = (
-  order: Order,
+  parent: OrderParent,
   product: Product,
-  platformPercent: number = 0.9
+  transferRatio: number = 0.9
 ) => {
-  const amount = product.amount;
-  const transfer = Math.ceil(product.amount * platformPercent);
-  const fee = amount - transfer;
+  const transfer = Math.ceil(product.amount * transferRatio);
+  const fee = product.amount - transfer;
 
   const item: OrderItem = {
     id: orderItems.length + 1,
-    order_id: order.id,
+    parentId: parent.id,
     productId: product.id,
     transfer,
     fee,
@@ -249,12 +260,11 @@ export const addOrderItem = (
   return item;
 };
 
-/*
-export const listOrder = (user: User): OrderWithItems[] => {
+export const listOrder = (user: User): OrderItem[] => {
   const productIds = listProductByUser(user).map((p) => p.id);
-  return orders.filter((o) => productIds.includes(o.productId));
+  const items = orderItems.filter((o) => productIds.includes(o.productId));
+  return items;
 };
-*/
 
 // general
 export const saveData = () => {
@@ -265,7 +275,7 @@ export const saveData = () => {
       accessTokens,
       accounts,
       products,
-      orders,
+      orderParents,
       orderItems,
     })
   );
@@ -281,7 +291,7 @@ export const loadData = () => {
   accessTokens = data.accessTokens || [];
   accounts = data.accounts || [];
   products = data.products || [];
-  orders = data.orders || [];
+  orderParents = data.orderParents || [];
   orderItems = data.orderItems || [];
   console.log('*** DONE LOAD ***');
 };
