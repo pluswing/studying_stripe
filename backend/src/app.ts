@@ -58,7 +58,7 @@ app.use(
   })
 );
 app.use(express.static('public'));
-app.use(express.json());
+// app.use(express.json());
 app.use((req, res, next) => {
   if (req.originalUrl === '/webhook') {
     next();
@@ -224,7 +224,7 @@ app.post('/buy_products', async (req, res) => {
   });
 });
 
-const endpointSecret = 'whsec_...';
+const endpointSecret = 'whsec_L2ODS7oriu7DBcWg3hYNxZ4jFaiPOJbe';
 app.post(
   '/webhook',
   bodyParser.raw({ type: 'application/json' }),
@@ -242,11 +242,11 @@ app.post(
     }
 
     if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
-      const connectedAccountId = event.account;
-      // TODO 要確認
-      // @ts-ignore
-      const transferGroup = paymentIntent.transferGroup;
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      // FIXME チェック
+      const transferGroup = paymentIntent.transfer_group || '';
+      const chargeId = paymentIntent.charges.data[0].id;
+      console.log('charges', paymentIntent.charges);
       const order = findOrder(transferGroup);
 
       for (const item of order.items) {
@@ -261,8 +261,9 @@ app.post(
           currency: 'jpy',
           destination: account.stripeAccountId,
           transfer_group: transferGroup,
-          source_transaction: '', // FIXME CARGE_ID
+          source_transaction: chargeId,
         });
+        console.log('transfer', transfer);
         // FIXME transferの内容をitemsに保存する
       }
 
