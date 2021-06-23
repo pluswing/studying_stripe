@@ -26,6 +26,7 @@ import {
   Account,
   addOrderItem,
   findOrder,
+  saveTransfer,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -238,15 +239,16 @@ app.post(
     try {
       event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
     } catch (err) {
-      return response.status(400).send(`Webhook Error: ${err.message}`);
+      throw new Error(`Webhook Error: ${err.message}`);
     }
 
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      // FIXME チェック
-      const transferGroup = paymentIntent.transfer_group || '';
+      const transferGroup = paymentIntent.transfer_group;
+      if (!transferGroup) {
+        throw new Error('empty transfer_group');
+      }
       const chargeId = paymentIntent.charges.data[0].id;
-      console.log('charges', paymentIntent.charges);
       const order = findOrder(transferGroup);
 
       for (const item of order.items) {
@@ -263,18 +265,16 @@ app.post(
           transfer_group: transferGroup,
           source_transaction: chargeId,
         });
-        console.log('transfer', transfer);
-        // FIXME transferの内容をitemsに保存する
+        saveTransfer(item, transfer.id);
       }
-
-      paidOrder(transferGroup);
+      paidOrder(transferGroup, chargeId);
     }
-
     response.json({ received: true });
   }
 );
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(err);
   return res.status(400).json({
     error: err.message,
   });

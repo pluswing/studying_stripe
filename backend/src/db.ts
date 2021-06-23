@@ -34,6 +34,7 @@ export interface OrderParent {
   status: 'order' | 'paid';
   createdAt: Date;
   paidAt: Date | null;
+  chargeId: string | null;
 }
 
 export interface OrderItem {
@@ -43,6 +44,7 @@ export interface OrderItem {
   // userId: number;
   transfer: number;
   fee: number; // transfer + fee = product.amount
+  transferId: string | null;
 }
 
 // FIXME
@@ -213,18 +215,20 @@ export const createOrder = (
     createdAt: new Date(),
     status: 'order',
     paidAt: null,
+    chargeId: null,
   };
   orderParents.push(o);
   return o;
 };
 
-export const paidOrder = (transferGroupId: string): void => {
+export const paidOrder = (transferGroupId: string, chargeId: string): void => {
   const o = orderParents.find((o) => o.transferGroupId == transferGroupId);
   if (!o) {
     throw new Error('order not found.');
   }
   o.status = 'paid';
   o.paidAt = new Date();
+  o.chargeId = chargeId;
 };
 
 export const findOrder = (transferGroupId: string): Order => {
@@ -255,9 +259,14 @@ export const addOrderItem = (
     productId: product.id,
     transfer,
     fee,
+    transferId: null,
   };
   orderItems.push(item);
   return item;
+};
+
+export const saveTransfer = (item: OrderItem, transferId: string): void => {
+  item.transferId = transferId;
 };
 
 export const listOrder = (user: User): OrderItem[] => {
