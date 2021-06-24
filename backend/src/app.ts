@@ -27,6 +27,7 @@ import {
   addOrderItem,
   findOrder,
   saveTransfer,
+  listOrderParent,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -75,6 +76,8 @@ app.use((req, res, next) => {
       '/list_products',
       '/buy_products',
       '/webhook',
+      // FIXME
+      '/platform/orders',
     ].includes(req.originalUrl)
   ) {
     // アクセストークン不要
@@ -272,6 +275,12 @@ app.post(
     response.json({ received: true });
   }
 );
+
+app.post('/platform/orders', async (req, res) => {
+  res.json({
+    orders: listOrderParent(),
+  });
+});
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err);

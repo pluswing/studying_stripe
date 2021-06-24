@@ -244,6 +244,10 @@ export const findOrder = (transferGroupId: string): Order => {
   } as Order;
 };
 
+export const listOrderParent = (): OrderParent[] => {
+  return orderParents.filter((o) => o.status == 'paid');
+};
+
 let orderItems: OrderItem[] = [];
 export const addOrderItem = (
   parent: OrderParent,
