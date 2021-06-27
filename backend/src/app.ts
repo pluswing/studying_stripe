@@ -25,9 +25,10 @@ import {
   Product,
   Account,
   addOrderItem,
-  findOrder,
+  findOrderByTransferGroup,
   saveTransfer,
   listOrderParent,
+  findOrder,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -78,6 +79,7 @@ app.use((req, res, next) => {
       '/webhook',
       // FIXME
       '/platform/orders',
+      '/platform/order_detail',
     ].includes(req.originalUrl)
   ) {
     // アクセストークン不要
@@ -252,7 +254,7 @@ app.post(
         throw new Error('empty transfer_group');
       }
       const chargeId = paymentIntent.charges.data[0].id;
-      const order = findOrder(transferGroup);
+      const order = findOrderByTransferGroup(transferGroup);
 
       for (const item of order.items) {
         const product = findProduct(item.productId);
@@ -279,6 +281,13 @@ app.post(
 app.post('/platform/orders', async (req, res) => {
   res.json({
     orders: listOrderParent(),
+  });
+});
+app.post('/platform/order_detail', async (req, res) => {
+  const id = parseInt(req.body.id, 10);
+  console.log('ID', id);
+  res.json({
+    order: findOrder(id),
   });
 });
 

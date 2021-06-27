@@ -47,7 +47,6 @@ export interface OrderItem {
   transferId: string | null;
 }
 
-// FIXME
 export interface Order {
   parent: OrderParent;
   items: OrderItem[];
@@ -231,12 +230,20 @@ export const paidOrder = (transferGroupId: string, chargeId: string): void => {
   o.chargeId = chargeId;
 };
 
-export const findOrder = (transferGroupId: string): Order => {
+export const findOrderByTransferGroup = (transferGroupId: string): Order => {
   const parent = orderParents.find((o) => o.transferGroupId == transferGroupId);
   if (!parent) {
     throw new Error('order not found.');
   }
-  const items = orderItems.filter((i) => i.parentId == parent?.id);
+  return findOrder(parent.id);
+};
+
+export const findOrder = (id: number): Order => {
+  const parent = orderParents.find((o) => o.id == id);
+  if (!parent) {
+    throw new Error('order not found.');
+  }
+  const items = orderItems.filter((i) => i.parentId == parent.id);
 
   return {
     parent,
