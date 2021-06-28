@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export interface OrderParent {
@@ -49,7 +50,7 @@ return (
           <div>{o.id}</div>
           <div>{o.paidAt}</div>
           <div>{o.amount}</div>
-          <button>詳細</button>
+          <Link href={`/platform/orders/${o.id}`}><a>詳細</a></Link>
         </div>
       ))
       }

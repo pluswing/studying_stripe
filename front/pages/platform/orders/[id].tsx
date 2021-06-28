@@ -61,6 +61,23 @@ export default function OrderDetail() {
     setOrder(data.order)
   }
 
+  const refund = async (id: number) => {
+    const res =  await fetch("http://localhost:8000/platform/refund_order", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({
+        id,
+      })
+    })
+    const data = await res.json()
+    if (data.error) {
+       return
+    }
+    router.replace("/platform")
+  }
 
   return (
     <div>
@@ -73,7 +90,7 @@ export default function OrderDetail() {
         <div>{order.parent.id}</div>
         <div>{order.parent.paidAt}</div>
         <div>{order.parent.amount}</div>
-        <button>返金</button>
+        <button onClick={() => { refund(order.parent.id) }}>返金</button>
       </div>
       ) : <div></div>}
       {order.items ? (

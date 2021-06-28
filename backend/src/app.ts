@@ -29,6 +29,7 @@ import {
   saveTransfer,
   listOrderParent,
   findOrder,
+  refundOrder,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -80,6 +81,7 @@ app.use((req, res, next) => {
       // FIXME
       '/platform/orders',
       '/platform/order_detail',
+      '/platform/refund_order',
     ].includes(req.originalUrl)
   ) {
     // アクセストークン不要
@@ -285,9 +287,30 @@ app.post('/platform/orders', async (req, res) => {
 });
 app.post('/platform/order_detail', async (req, res) => {
   const id = parseInt(req.body.id, 10);
-  console.log('ID', id);
   res.json({
     order: findOrder(id),
+  });
+});
+app.post('/platform/refund_order', async (req, res) => {
+  const id = parseInt(req.body.id, 10);
+  const order = findOrder(id);
+  if (order.parent.status != 'paid') {
+    throw new Error('not paid');
+  }
+  const refund = await stripe.refunds.create({
+    charge: order.parent.chargeId!,
+  });
+  // FIXME "status": "succeeded",の確認をしたほうが良い
+  console.log(refund);
+  for (const item of order.items) {
+    const reversal = await stripe.transfers.createReversal(item.transferId!, {
+      amount: item.transfer,
+    });
+    console.log(reversal);
+  }
+  refundOrder(order.parent);
+  res.json({
+    ok: true,
   });
 });
 

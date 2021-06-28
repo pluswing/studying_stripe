@@ -31,7 +31,7 @@ export interface OrderParent {
   id: number;
   transferGroupId: string; // unique
   amount: number;
-  status: 'order' | 'paid';
+  status: 'order' | 'paid' | 'refund';
   createdAt: Date;
   paidAt: Date | null;
   chargeId: string | null;
@@ -218,6 +218,10 @@ export const createOrder = (
   };
   orderParents.push(o);
   return o;
+};
+
+export const refundOrder = (order: OrderParent): void => {
+  order.status = 'refund';
 };
 
 export const paidOrder = (transferGroupId: string, chargeId: string): void => {
