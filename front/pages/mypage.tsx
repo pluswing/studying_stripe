@@ -79,6 +79,25 @@ export default function Mypage() {
     }
     location.href = data.url
   }, [])
+
+
+  const dashboard = useCallback(async () => {
+    const res =  await fetch("http://localhost:8000/dashboard", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem("access_token")
+        },
+        body: JSON.stringify({
+        })
+      })
+    const data = await res.json()
+    if (data.error) {
+      console.log(data)
+      return;
+    }
+    location.href = data.url
+  }, [])
 return (
     <div>
       <Head>
@@ -86,8 +105,18 @@ return (
       </Head>
       <h1>MYPAGE</h1>
       ようこそ！{user.loginId}さん<br/>
-      Stripe連携は{account.userId ? "されています": "されていません"}<br/>
-      <a onClick={connectStripe}>Stripeと連携</a>
+      {account.userId ? (
+        <div>
+          <div>Stripe連携はされています</div>
+          <a onClick={dashboard}>ダッシュボード</a>
+        </div>
+      ) : (
+        <div>
+          <div>Stripe連携はされていません</div>
+          <br/>
+          <a onClick={connectStripe}>Stripeと連携</a>
+        </div>
+        )}
       <hr/>
       <AddProduct onAdded={fetchProducts}/>
       <hr/>

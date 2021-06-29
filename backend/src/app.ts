@@ -184,6 +184,17 @@ app.post('/list_products', (req, res) => {
   });
 });
 
+app.post('/dashboard', async (req, res) => {
+  const account = findAccount(req.authUser);
+  if (!account) {
+    throw new Error('account not found');
+  }
+  const link = await stripe.accounts.createLoginLink(account.stripeAccountId);
+  res.json({
+    url: link.url,
+  });
+});
+
 app.post('/buy_products', async (req, res) => {
   // { "product_ids": [999] }
   const items: Array<{ product: Product; account: Account }> = [];
