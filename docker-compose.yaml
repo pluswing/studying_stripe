@@ -21,3 +21,9 @@ services:
       - 3000:3000
     working_dir: /app
     tty: true
+  mysql:
+    image: mysql:8.0.25
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+
