@@ -11,7 +11,61 @@ generator client {
 }
 
 model User {
-  id        Int     @id @default(autoincrement())
-  loginId   String  @db.VarChar(255)
-  password  String  @db.VarChar(255)
+  id          Int          @id @default(autoincrement())
+  loginId     String       @db.VarChar(255)
+  password    String       @db.VarChar(255)
+  accessToken AccessToken?
+  account     Account?
+  product     Product[]
+}
+
+model AccessToken {
+  id          Int    @id @default(autoincrement())
+  userId      Int
+  accessToken String @db.VarChar(255)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  id              Int     @id @default(autoincrement())
+  userId          Int
+  stripeAccountId String  @db.VarChar(255)
+  draft           Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Product {
+  id     Int    @id @default(autoincrement())
+  userId Int
+  name   String @db.VarChar(255)
+  amount Int
+  url    String @db.VarChar(255)
+
+  user      User        @relation(fields: [userId], references: [id])
+  OrderItem OrderItem[]
+}
+
+model OrderParent {
+  id              Int         @id @default(autoincrement())
+  transferGroupId String      @unique @db.VarChar(255)
+  amount          Int
+  status          String      @db.VarChar(255)
+  createdAt       DateTime    @default(now()) @db.Timestamp(6)
+  paidAt          DateTime?   @db.Timestamp(6)
+  chargeId        String?     @db.VarChar(255)
+  OrderItem       OrderItem[]
+}
+
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  parentId   Int
+  productId  Int
+  transfer   Int
+  fee        Int
+  transferId String? @db.VarChar(255)
+
+  parent  OrderParent @relation(fields: [parentId], references: [id])
+  product Product     @relation(fields: [productId], references: [id])
 }
