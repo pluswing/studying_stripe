@@ -2,12 +2,15 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 
+import { PrismaClient, User } from '@prisma/client';
+const prisma = new PrismaClient();
+/*
 export interface User {
   id: number;
   loginId: string;
   password: string;
 }
-
+*/
 interface AccessToken {
   userId: number;
   accessToken: string;
@@ -59,8 +62,14 @@ const md5str = (str: string): string => {
 
 // User
 let users: User[] = [];
-const findUserByLoginId = (loginId: string): User | undefined => {
-  return users.find((u) => u.loginId == loginId);
+const findUserByLoginId = async (loginId: string): Promise<User | null> => {
+  const user = await prisma.user.findFirst({
+    where: {
+      loginId,
+    },
+  });
+  return user;
+  // return users.find((u) => u.loginId == loginId);
 };
 // 会員登録
 export const register = (loginId: string, password: string): User => {

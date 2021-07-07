@@ -16,22 +16,20 @@ model User {
   password    String       @db.VarChar(255)
   accessToken AccessToken?
   account     Account?
-  product     Product[]
+  products    Product[]
 }
 
 model AccessToken {
-  id          Int    @id @default(autoincrement())
-  userId      Int
-  accessToken String @db.VarChar(255)
+  userId      Int    @unique
+  accessToken String @unique @db.VarChar(255)
 
   user User @relation(fields: [userId], references: [id])
 }
 
 model Account {
-  id              Int     @id @default(autoincrement())
-  userId          Int
-  stripeAccountId String  @db.VarChar(255)
-  draft           Boolean @default(true)
+  userId          Int     @unique
+  stripeAccountId String  @unique @db.VarChar(255)
+  draft           Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id])
 }
@@ -43,8 +41,8 @@ model Product {
   amount Int
   url    String @db.VarChar(255)
 
-  user      User        @relation(fields: [userId], references: [id])
-  OrderItem OrderItem[]
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
 }
 
 model OrderParent {
@@ -55,7 +53,7 @@ model OrderParent {
   createdAt       DateTime    @default(now()) @db.Timestamp(6)
   paidAt          DateTime?   @db.Timestamp(6)
   chargeId        String?     @db.VarChar(255)
-  OrderItem       OrderItem[]
+  orderItems      OrderItem[]
 }
 
 model OrderItem {
