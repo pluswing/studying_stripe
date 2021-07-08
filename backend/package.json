@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "start": "ts-node src/app.ts"
+    "start": "ts-node src/app.ts",
+    "db:migrate": "prisma migrate dev --name",
+    "db:sync": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^2.26.0",

@@ -61,7 +61,6 @@ const md5str = (str: string): string => {
 };
 
 // User
-let users: User[] = [];
 const findUserByLoginId = async (loginId: string): Promise<User | null> => {
   const user = await prisma.user.findFirst({
     where: {
@@ -69,25 +68,31 @@ const findUserByLoginId = async (loginId: string): Promise<User | null> => {
     },
   });
   return user;
-  // return users.find((u) => u.loginId == loginId);
 };
 // 会員登録
-export const register = (loginId: string, password: string): User => {
-  if (findUserByLoginId(loginId)) {
+export const register = async (
+  loginId: string,
+  password: string
+): Promise<User> => {
+  if (await findUserByLoginId(loginId)) {
     throw new Error('duplicated loginId');
   }
 
-  const user: User = {
-    id: users.length + 1,
-    loginId,
-    password: md5str(password),
-  };
-  users.push(user);
+  const user = await prisma.user.create({
+    data: {
+      loginId,
+      password: md5str(password),
+    },
+  });
+
   return user;
 };
 // ログイン
-export const login = (loginId: string, password: string): User => {
-  const user = findUserByLoginId(loginId);
+export const login = async (
+  loginId: string,
+  password: string
+): Promise<User> => {
+  const user = await findUserByLoginId(loginId);
   if (!user) {
     throw new Error('user not found.');
   }
@@ -97,8 +102,12 @@ export const login = (loginId: string, password: string): User => {
   return user;
 };
 
-export const findUserById = (id: number): User => {
-  const u = users.find((u) => u.id == id);
+export const findUserById = async (id: number): Promise<User> => {
+  const u = await prisma.user.findFirst({
+    where: {
+      id,
+    },
+  });
   if (!u) {
     throw new Error('user not found');
   }
@@ -106,23 +115,30 @@ export const findUserById = (id: number): User => {
 };
 
 // AccessToken
-let accessTokens: AccessToken[] = [];
-export const issueAccessToken = (user: User): AccessToken => {
-  accessTokens = accessTokens.filter((a) => a.userId != user.id);
-  const at: AccessToken = {
-    userId: user.id,
-    accessToken: uuidv4(),
-  };
-  accessTokens.push(at);
+export const issueAccessToken = async (user: User): Promise<AccessToken> => {
+  await prisma.accessToken.deleteMany({
+    where: {
+      user,
+    },
+  });
+
+  const at = await prisma.accessToken.create({
+    data: {
+      userId: user.id,
+      accessToken: uuidv4(),
+    },
+  });
   return at;
 };
 
-export const accessToken2User = (accessToken: string): User => {
-  const at = accessTokens.find((a) => a.accessToken == accessToken);
+export const accessToken2User = async (accessToken: string): Promise<User> => {
+  const at = await prisma.accessToken.findFirst({
+    where: { accessToken },
+  });
   if (!at) {
     throw new Error('not logged in');
   }
-  const user = users.find((u) => u.id == at.userId);
+  const user = await findUserById(at.userId);
   if (!user) {
     throw new Error('not logged in');
   }
@@ -130,27 +146,36 @@ export const accessToken2User = (accessToken: string): User => {
 };
 
 // Account
-let accounts: Account[] = [];
-export const findAccount = (user: User): Account | undefined => {
-  return accounts.find((a) => a.userId == user.id);
+export const findAccount = async (user: User): Promise<Account | null> => {
+  return await prisma.account.findFirst({
+    where: { user },
+  });
 };
 
-export const connectAccount = (
+export const connectAccount = async (
   user: User,
   stripeAccountId: string
-): Account => {
-  const a: Account = {
-    userId: user.id,
-    stripeAccountId,
-    draft: true,
-  };
-  accounts.push(a);
+): Promise<Account> => {
+  const a = await prisma.account.create({
+    data: {
+      userId: user.id,
+      stripeAccountId,
+      draft: true,
+    },
+  });
   return a;
 };
 
-export const removeDraft = (account: Account): Account => {
-  account.draft = false;
-  return account;
+export const removeDraft = async (account: Account): Promise<Account> => {
+  const a = await prisma.account.update({
+    where: {
+      stripeAccountId: account.stripeAccountId,
+    },
+    data: {
+      draft: true,
+    },
+  });
+  return a;
 };
 
 // Product

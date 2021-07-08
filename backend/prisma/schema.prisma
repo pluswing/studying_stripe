@@ -45,11 +45,17 @@ model Product {
   orderItems OrderItem[]
 }
 
+enum OrderStatus {
+  ORDER
+  PAID
+  REFUND
+}
+
 model OrderParent {
   id              Int         @id @default(autoincrement())
   transferGroupId String      @unique @db.VarChar(255)
   amount          Int
-  status          String      @db.VarChar(255)
+  status          OrderStatus @default(ORDER)
   createdAt       DateTime    @default(now()) @db.Timestamp(6)
   paidAt          DateTime?   @db.Timestamp(6)
   chargeId        String?     @db.VarChar(255)

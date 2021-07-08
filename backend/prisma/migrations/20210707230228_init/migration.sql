@@ -42,7 +42,7 @@ CREATE TABLE `OrderParent` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `transferGroupId` VARCHAR(255) NOT NULL,
     `amount` INTEGER NOT NULL,
-    `status` VARCHAR(255) NOT NULL,
+    `status` ENUM('ORDER', 'PAID', 'REFUND') NOT NULL DEFAULT 'ORDER',
     `createdAt` TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     `paidAt` TIMESTAMP(6),
     `chargeId` VARCHAR(255),
