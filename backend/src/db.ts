@@ -251,19 +251,16 @@ export const paidOrder = async (
 
 export const findOrderByTransferGroup = async (
   transferGroupId: string
-): Promise<OrderParent> => {
+): Promise<
+  OrderParent & {
+    orderItems: OrderItem[];
+  }
+> => {
   const parent = await prisma.orderParent.findFirst({
-    select: {
-      id: true,
-      transferGroupId: true,
-      amount: true,
-      status: true,
-      createdAt: true,
-      paidAt: true,
-      chargeId: true,
+    where: { transferGroupId },
+    include: {
       orderItems: true,
     },
-    where: { transferGroupId },
   });
   if (!parent) {
     throw new Error('order not found.');
@@ -277,9 +274,26 @@ export const listOrderParent = async (): Promise<OrderParent[]> => {
   });
 };
 
-export const findOrder = async (id: number): Promise<OrderParent> => {
-  // @ts-ignore FIXME implements
-  return null;
+export const findOrder = async (
+  id: number
+): Promise<
+  OrderParent & {
+    orderItems: OrderItem[];
+  }
+> => {
+  const parent = await prisma.orderParent.findFirst({
+    where: {
+      id,
+    },
+    include: {
+      orderItems: true,
+    },
+  });
+  if (!parent) {
+    throw new Error('order not found.');
+  }
+
+  return parent;
 };
 
 export const addOrderItem = async (

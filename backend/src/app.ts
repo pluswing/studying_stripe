@@ -104,9 +104,9 @@ app.post('/login', async (req, res) => {
   });
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   const data = req.body;
-  const user = register(data.loginId, data.password);
+  await register(data.loginId, data.password);
   res.json({
     success: true,
   });
@@ -160,23 +160,28 @@ app.post('/done_connected', async (req, res) => {
   });
 });
 
-app.post('/register_product', (req, res) => {
+app.post('/register_product', async (req, res) => {
   const data = req.body;
-  registerProduct(req.authUser, data.name, parseInt(data.amount, 10), data.url);
+  await registerProduct(
+    req.authUser,
+    data.name,
+    parseInt(data.amount, 10),
+    data.url
+  );
   res.json({
     success: true,
   });
 });
 
-app.post('/list_products_by_user', (req, res) => {
+app.post('/list_products_by_user', async (req, res) => {
   res.json({
-    products: listProductByUser(req.authUser),
+    products: await listProductByUser(req.authUser),
   });
 });
 
-app.post('/list_products', (req, res) => {
+app.post('/list_products', async (req, res) => {
   res.json({
-    products: listProducts(req.body.query),
+    products: await listProducts(req.body.query),
   });
 });
 
@@ -302,21 +307,21 @@ app.post('/platform/order_detail', async (req, res) => {
 app.post('/platform/refund_order', async (req, res) => {
   const id = parseInt(req.body.id, 10);
   const order = await findOrder(id);
-  if (order.parent.status != 'paid') {
+  if (order.status != 'PAID') {
     throw new Error('not paid');
   }
   const refund = await stripe.refunds.create({
-    charge: order.parent.chargeId!,
+    charge: order.chargeId!,
   });
   // FIXME "status": "succeeded",の確認をしたほうが良い
   console.log(refund);
-  for (const item of order.items) {
+  for (const item of order.orderItems) {
     const reversal = await stripe.transfers.createReversal(item.transferId!, {
       amount: item.transfer,
     });
     console.log(reversal);
   }
-  refundOrder(order.parent);
+  await refundOrder(order);
   res.json({
     ok: true,
   });
