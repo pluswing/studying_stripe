@@ -12,26 +12,22 @@ import {
   findAccount,
   connectAccount,
   removeDraft,
-  User,
   registerProduct,
   listProductByUser,
   listProducts,
-  loadData,
-  saveData,
   findProduct,
   findUserById,
   createOrder,
   paidOrder,
-  Product,
-  Account,
   addOrderItem,
   findOrderByTransferGroup,
   saveTransfer,
   listOrderParent,
-  findOrder,
   refundOrder,
+  findOrder,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
+import { Account, Product, User } from '@prisma/client';
 
 const stripe = new Stripe(process.env['SECRET_KEY'] || '', {
   apiVersion: '2020-08-27',
@@ -70,7 +66,7 @@ app.use((req, res, next) => {
     bodyParser.json()(req, res, next);
   }
 });
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (
     [
       '/login',
@@ -89,7 +85,7 @@ app.use((req, res, next) => {
   } else {
     try {
       const aceessToken = req.header('Authorization') || '';
-      const user = accessToken2User(aceessToken);
+      const user = await accessToken2User(aceessToken);
       req.authUser = user;
       next();
     } catch (e) {
@@ -100,11 +96,11 @@ app.use((req, res, next) => {
   }
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const data = req.body;
-  const user = login(data.loginId, data.password);
+  const user = await login(data.loginId, data.password);
   res.json({
-    accessToken: issueAccessToken(user).accessToken,
+    accessToken: (await issueAccessToken(user)).accessToken,
   });
 });
 
@@ -117,7 +113,7 @@ app.post('/register', (req, res) => {
 });
 
 app.post('/user', async (req, res) => {
-  const account = findAccount(req.authUser);
+  const account = await findAccount(req.authUser);
   res.json({
     user: req.authUser, // TODO 不要な情報は省く
     account,
@@ -126,13 +122,13 @@ app.post('/user', async (req, res) => {
 
 app.post('/connect_stripe', async (req, res) => {
   // すでにAccountがあれば、↓はやらない
-  let account = findAccount(req.authUser);
+  let account = await findAccount(req.authUser);
   if (!account) {
     // Accountのデータを作る（ドラフト状態）
     const res = await stripe.accounts.create({
       type: 'express',
     });
-    account = connectAccount(req.authUser, res.id);
+    account = await connectAccount(req.authUser, res.id);
   }
 
   const accountLinks = await stripe.accountLinks.create({
@@ -148,7 +144,7 @@ app.post('/connect_stripe', async (req, res) => {
 });
 
 app.post('/done_connected', async (req, res) => {
-  const account = findAccount(req.authUser);
+  const account = await findAccount(req.authUser);
 
   if (!account) {
     throw new Error('account not found');
@@ -157,7 +153,7 @@ app.post('/done_connected', async (req, res) => {
   const r = await stripe.accounts.retrieve(account.stripeAccountId);
 
   if (r.charges_enabled && r.details_submitted) {
-    removeDraft(account);
+    await removeDraft(account);
   }
   res.json({
     success: true,
@@ -185,7 +181,7 @@ app.post('/list_products', (req, res) => {
 });
 
 app.post('/dashboard', async (req, res) => {
-  const account = findAccount(req.authUser);
+  const account = await findAccount(req.authUser);
   if (!account) {
     throw new Error('account not found');
   }
@@ -199,9 +195,9 @@ app.post('/buy_products', async (req, res) => {
   // { "product_ids": [999] }
   const items: Array<{ product: Product; account: Account }> = [];
   for (const id of req.body.product_ids) {
-    const product = findProduct(id);
-    const user = findUserById(product.userId);
-    const account = findAccount(user);
+    const product = await findProduct(id);
+    const user = await findUserById(product.userId);
+    const account = await findAccount(user);
     if (!account) {
       // mypage側(/register_product)で防ぐべき。
       throw new Error('invalid status');
@@ -232,9 +228,9 @@ app.post('/buy_products', async (req, res) => {
   console.log('INTENT:');
   console.log(intent);
 
-  const order = createOrder(amount, transferGroup);
+  const order = await createOrder(amount, transferGroup);
   for (const item of items) {
-    addOrderItem(order, item.product);
+    await addOrderItem(order, item.product);
   }
 
   res.json({
@@ -267,12 +263,13 @@ app.post(
         throw new Error('empty transfer_group');
       }
       const chargeId = paymentIntent.charges.data[0].id;
-      const order = findOrderByTransferGroup(transferGroup);
+      const order = await findOrderByTransferGroup(transferGroup);
 
-      for (const item of order.items) {
-        const product = findProduct(item.productId);
-        const user = findUserById(product.userId);
-        const account = findAccount(user);
+      // @ts-ignore
+      for (const item of order.orderItems) {
+        const product = await findProduct(item.productId);
+        const user = await findUserById(product.userId);
+        const account = await findAccount(user);
         if (!account) {
           throw new Error('invalid status');
         }
@@ -283,9 +280,9 @@ app.post(
           transfer_group: transferGroup,
           source_transaction: chargeId,
         });
-        saveTransfer(item, transfer.id);
+        await saveTransfer(item, transfer.id);
       }
-      paidOrder(transferGroup, chargeId);
+      await paidOrder(transferGroup, chargeId);
     }
     response.json({ received: true });
   }
@@ -293,18 +290,18 @@ app.post(
 
 app.post('/platform/orders', async (req, res) => {
   res.json({
-    orders: listOrderParent(),
+    orders: await listOrderParent(),
   });
 });
 app.post('/platform/order_detail', async (req, res) => {
   const id = parseInt(req.body.id, 10);
   res.json({
-    order: findOrder(id),
+    order: await findOrder(id),
   });
 });
 app.post('/platform/refund_order', async (req, res) => {
   const id = parseInt(req.body.id, 10);
-  const order = findOrder(id);
+  const order = await findOrder(id);
   if (order.parent.status != 'paid') {
     throw new Error('not paid');
   }
@@ -333,14 +330,12 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 });
 
 app.listen(port, () => {
-  loadData();
   console.log(`Example app listening at http://localhost:${port}`);
 });
 
 process.on('exit', () => {
-  saveData();
+  // 終了時処理
 });
-
 process.on('SIGINT', () => {
   process.exit();
 });

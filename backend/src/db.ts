@@ -277,6 +277,11 @@ export const listOrderParent = async (): Promise<OrderParent[]> => {
   });
 };
 
+export const findOrder = async (id: number): Promise<OrderParent> => {
+  // @ts-ignore FIXME implements
+  return null;
+};
+
 export const addOrderItem = async (
   parent: OrderParent,
   product: Product,
