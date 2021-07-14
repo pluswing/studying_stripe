@@ -30,8 +30,14 @@ interface ExternalAccount {
 }
 
 export default function Register() {
-  const [data, setData] = useState({
+  const [individual, setIndividual] = useState({
   } as Individual)
+  const [addressKanji, setAddressKanji] = useState({
+  } as Address)
+  const [addressKana, setAddressKana] = useState({
+  } as Address)
+  const [dob, setDob] = useState({
+  } as Dob)
 
   const router = useRouter();
 
@@ -58,9 +64,24 @@ export default function Register() {
     // setData({})
   }
 
-  const changeData = (key: string, value: string) => {
-    setData({...data, [key]: value})
-  }
+  const AddressForm = (props: {data: Address, setter: (a: Address) => void}) => (
+    <div>
+      {["postal_code", "state", "city", "town", "line1"].map((key) => (
+        <div>
+        {key}: <input type="text" onChange={(e) => props.setter({...props.data, [key]: e.target.value})} value={props.data[key]}/>
+        </div>
+      ))}
+    </div>
+  )
+
+  const DobForm = (props: {data: Dob, setter: (a: Dob) => void}) => (
+    <div>
+      生年月日:
+      {["year", "month", "day"].map((key) => (
+      <input type="text" onChange={(e) => props.setter({...props.data, [key]: e.target.value})} value={props.data[key]}/>
+      ))}
+    </div>
+  )
 
   return (
     <div>
@@ -68,9 +89,20 @@ export default function Register() {
         <title>登録</title>
       </Head>
       <h1>登録</h1>
-      <div>
-        email: <input type="text" onChange={(e) => changeData('email', e.target.value)} value={data.email}/>
+      {["last_name_kanji", "first_name_kanji", "last_name_kana", "first_name_kana", "email", "phone"].map((key) => (
+        <div>
+        {key}: <input type="text" onChange={(e) => setIndividual({...individual, [key]: e.target.value})} value={individual[key]}/>
+        </div>
+      ))}
+      住所(漢字):
+      <div className="border-2 border-gray-700 p-3">
+        <AddressForm data={addressKanji} setter={setAddressKanji} />
       </div>
+      住所(かな):
+      <div className="border-2 border-gray-700 p-3">
+        <AddressForm data={addressKana} setter={setAddressKana} />
+      </div>
+      <DobForm data={dob} setter={setDob}/>
     </div>
   )
 }
