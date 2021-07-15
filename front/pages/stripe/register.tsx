@@ -29,6 +29,38 @@ interface ExternalAccount {
   // TODO implements
 }
 
+
+const AddressForm = (
+  {data, setter}: {data: Address, setter: (a: Address) => void}) => (
+  <div>
+    {["postal_code", "state", "city", "town", "line1"].map((key) => (
+      <div className="p-1">
+        <label className="inline-block w-32">{key}</label>
+        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => setter({...data, [key]: e.target.value})} value={data[key]}/>
+      </div>
+    ))}
+  </div>
+)
+
+const dob2str = (dob: Dob): string => {
+  return `${dob.year}-${dob.month}-${dob.day}`
+}
+
+const str2dob = (str: string): Dob => {
+  const s = str.split("-")
+  return {
+    year: s[0],
+    month: s[1],
+    day: s[2]
+  }
+}
+
+const DobForm = ({data, setter}: {data: Dob, setter: (a: Dob) => void}) => (
+  <div>
+    <input type="date" onChange={(e) => setter(str2dob(e.target.value))} value={dob2str(data)}/>
+  </div>
+)
+
 export default function Register() {
   const [individual, setIndividual] = useState({
   } as Individual)
@@ -64,44 +96,23 @@ export default function Register() {
     // setData({})
   }
 
-  const AddressForm = (props: {data: Address, setter: (a: Address) => void}) => (
-    <div>
-      {["postal_code", "state", "city", "town", "line1"].map((key) => (
-        <div>
-        {key}: <input type="text" onChange={(e) => props.setter({...props.data, [key]: e.target.value})} value={props.data[key]}/>
-        </div>
-      ))}
-    </div>
-  )
-
-  const DobForm = (props: {data: Dob, setter: (a: Dob) => void}) => (
-    <div>
-      生年月日:
-      {["year", "month", "day"].map((key) => (
-      <input type="text" onChange={(e) => props.setter({...props.data, [key]: e.target.value})} value={props.data[key]}/>
-      ))}
-    </div>
-  )
-
   return (
     <div>
       <Head>
         <title>登録</title>
       </Head>
       <h1>登録</h1>
-      {["last_name_kanji", "first_name_kanji", "last_name_kana", "first_name_kana", "email", "phone"].map((key) => (
-        <div>
-        {key}: <input type="text" onChange={(e) => setIndividual({...individual, [key]: e.target.value})} value={individual[key]}/>
+      {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
+        <div className="p-1">
+          <label className="inline-block w-32">{k}</label>
+          <input className="border-2 border-gray-600 rounded" type={t ? t : "text"} onChange={(e) => setIndividual({...individual, [k]: e.target.value})} value={individual[k]}/>
         </div>
       ))}
       住所(漢字):
-      <div className="border-2 border-gray-700 p-3">
         <AddressForm data={addressKanji} setter={setAddressKanji} />
-      </div>
       住所(かな):
-      <div className="border-2 border-gray-700 p-3">
         <AddressForm data={addressKana} setter={setAddressKana} />
-      </div>
+      <label className="inline-block w-32">生年月日</label>
       <DobForm data={dob} setter={setDob}/>
     </div>
   )
