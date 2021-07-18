@@ -114,6 +114,10 @@ export default function Register() {
         <AddressForm data={addressKana} setter={setAddressKana} />
       <label className="inline-block w-32">生年月日</label>
       <DobForm data={dob} setter={setDob}/>
+
+      <div id="tos">
+        <input type="checkbox"/><a target="_blank" href="/tos">利用規約</a>に同意する
+      </div>
     </div>
   )
 }
