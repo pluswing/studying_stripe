@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
+import { useDropzone } from 'react-dropzone';
 
 interface Dob {
   day: string
@@ -71,6 +72,8 @@ export default function Register() {
   const [dob, setDob] = useState({
   } as Dob)
 
+  const [frontImageSrc, setFrontImageSrc] = useState("")
+
   const router = useRouter();
 
   useEffect(() => {
@@ -78,6 +81,31 @@ export default function Register() {
       await fetchUser()
     })()
   }, [])
+
+  const onDrop = useCallback((acceptedFiles) => {
+      console.log('acceptedFiles:', acceptedFiles);
+      let reader = new FileReader()
+      reader.readAsDataURL(acceptedFiles[0])
+      reader.onload = () => {
+          drawImage(reader.result)
+      }
+      const drawImage = (url: string|ArrayBuffer) => {
+        const canvas = document.querySelector("#frontCanvas")
+        // @ts-ignore
+        let ctx = canvas.getContext('2d')
+        let image = new Image()
+        // @ts-ignore
+        image.src = url
+        image.onload = () => {
+          ctx.drawImage(image, 0, 0)
+        }
+      }
+  }, []);
+
+const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
+  onDrop,
+  accept: 'image/jpeg, image/png'
+ });
 
   const fetchUser = async () => {
     const res =  await fetch("http://localhost:8000/user", {
@@ -118,6 +146,16 @@ export default function Register() {
       <div id="tos">
         <input type="checkbox"/><a target="_blank" href="/tos">利用規約</a>に同意する
       </div>
+
+      <div {...getRootProps()} className={isDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+            <input {...getInputProps()} />
+            {
+                isDragActive ?
+                    <p>Drop the files here ...</p> :
+                    <p>Drag 'n' drop some files here, or click to select files</p>
+            }
+      </div>
+      <canvas id="frontCanvas" className="w-80 h-60"/>
     </div>
   )
 }
