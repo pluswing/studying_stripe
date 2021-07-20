@@ -71,8 +71,7 @@ export default function Register() {
   } as Address)
   const [dob, setDob] = useState({
   } as Dob)
-
-  const [frontImageSrc, setFrontImageSrc] = useState("")
+  const [tos, setTos] = useState(false)
 
   const router = useRouter();
 
@@ -82,30 +81,53 @@ export default function Register() {
     })()
   }, [])
 
-  const onDrop = useCallback((acceptedFiles) => {
-      console.log('acceptedFiles:', acceptedFiles);
-      let reader = new FileReader()
-      reader.readAsDataURL(acceptedFiles[0])
-      reader.onload = () => {
-          drawImage(reader.result)
-      }
-      const drawImage = (url: string|ArrayBuffer) => {
-        const canvas = document.querySelector("#frontCanvas")
-        // @ts-ignore
-        let ctx = canvas.getContext('2d')
-        let image = new Image()
-        // @ts-ignore
-        image.src = url
-        image.onload = () => {
-          ctx.drawImage(image, 0, 0)
-        }
-      }
+  const onFrontDrop = useCallback((acceptedFiles) => {
+    console.log('frontAcceptedFiles:', acceptedFiles);
+    drawCanvas(acceptedFiles[0], "#frontCanvas")
   }, []);
 
-const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone({
-  onDrop,
-  accept: 'image/jpeg, image/png'
- });
+  const onBackDrop = useCallback((acceptedFiles) => {
+    console.log('backAcceptedFiles:', acceptedFiles);
+    drawCanvas(acceptedFiles[0], "#backCanvas")
+  }, []);
+
+
+  const drawCanvas = (file: File, canvasId: string) => {
+    let reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = () => {
+      const canvas: HTMLCanvasElement = document.querySelector(canvasId)
+      let ctx = canvas.getContext('2d')
+      let image = new Image()
+      image.src = reader.result as string
+      image.onload = () => {
+        // TODO 縦横比をそのままで貼り付けたい
+        ctx.drawImage(image,
+          0, 0, image.width, image.height,
+          0, 0, canvas.width, canvas.height)
+      }
+    }
+  }
+
+  const {
+    getRootProps: getFrontRootProps,
+    getInputProps: getFrontInputProps,
+    isDragActive: isFrontDragActive,
+    acceptedFiles: frontAcceptedFiles } = useDropzone({
+      onDrop: onFrontDrop,
+      accept: 'image/jpeg, image/png'
+    }
+  );
+
+  const {
+    getRootProps: getBackRootProps,
+    getInputProps: getBackInputProps,
+    isDragActive: isBackDragActive,
+    acceptedFiles: backAcceptedFiles } = useDropzone({
+      onDrop: onBackDrop,
+      accept: 'image/jpeg, image/png'
+    }
+  );
 
   const fetchUser = async () => {
     const res =  await fetch("http://localhost:8000/user", {
@@ -144,18 +166,20 @@ const { getRootProps, getInputProps, isDragActive, acceptedFiles } = useDropzone
       <DobForm data={dob} setter={setDob}/>
 
       <div id="tos">
-        <input type="checkbox"/><a target="_blank" href="/tos">利用規約</a>に同意する
+        <input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)}/><a target="_blank" href="/tos">利用規約</a>に同意する
       </div>
 
-      <div {...getRootProps()} className={isDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-            <input {...getInputProps()} />
-            {
-                isDragActive ?
-                    <p>Drop the files here ...</p> :
-                    <p>Drag 'n' drop some files here, or click to select files</p>
-            }
+      身分証明書 表面:
+      <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+        <input {...getFrontInputProps()} />
+        <canvas id="frontCanvas" className="w-80 h-60"/>
       </div>
-      <canvas id="frontCanvas" className="w-80 h-60"/>
+
+      身分証明書 裏面:
+      <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+        <input {...getBackInputProps()} />
+        <canvas id="backCanvas" className="w-80 h-60"/>
+      </div>
     </div>
   )
 }
