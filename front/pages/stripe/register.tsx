@@ -27,17 +27,20 @@ interface Individual {
 }
 
 interface ExternalAccount {
-  // TODO implements
+  account_number: string
+  routing_number1: string
+  routing_number2: string
+  account_holder_name: string
 }
 
 
 const AddressForm = (
-  {data, setter}: {data: Address, setter: (a: Address) => void}) => (
+  {data, onChange}: {data: Address, onChange: (a: Address) => void}) => (
   <div>
     {["postal_code", "state", "city", "town", "line1"].map((key) => (
       <div className="p-1">
         <label className="inline-block w-32">{key}</label>
-        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => setter({...data, [key]: e.target.value})} value={data[key]}/>
+        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]}/>
       </div>
     ))}
   </div>
@@ -56,9 +59,22 @@ const str2dob = (str: string): Dob => {
   }
 }
 
-const DobForm = ({data, setter}: {data: Dob, setter: (a: Dob) => void}) => (
+const DobForm = ({data, onChange}: {data: Dob, onChange: (a: Dob) => void}) => (
   <div>
-    <input type="date" onChange={(e) => setter(str2dob(e.target.value))} value={dob2str(data)}/>
+    <input type="date" onChange={(e) => onChange(str2dob(e.target.value))} value={dob2str(data)}/>
+  </div>
+)
+
+
+const ExternalAccountForm = (
+  {data, onChange}: {data: ExternalAccount, onChange: (a: ExternalAccount) => void}) => (
+  <div>
+    {["routing_number1", "routing_number2", "account_number", "account_holder_name"].map((key) => (
+      <div className="p-1">
+        <label className="inline-block w-32">{key}</label>
+        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]}/>
+      </div>
+    ))}
   </div>
 )
 
@@ -72,6 +88,8 @@ export default function Register() {
   const [dob, setDob] = useState({
   } as Dob)
   const [tos, setTos] = useState(false)
+  const [externalAccount, setExternalAccount] = useState({
+  } as ExternalAccount)
 
   const router = useRouter();
 
@@ -101,10 +119,16 @@ export default function Register() {
       let image = new Image()
       image.src = reader.result as string
       image.onload = () => {
-        // TODO 縦横比をそのままで貼り付けたい
+        const r = Math.min(
+          canvas.width / image.width,
+          canvas.height / image.height)
+        const w = image.width * r
+        const h = image.height * r
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
         ctx.drawImage(image,
           0, 0, image.width, image.height,
-          0, 0, canvas.width, canvas.height)
+          (canvas.width - w) / 2,
+          (canvas.height - h) / 2, w, h)
       }
     }
   }
@@ -159,11 +183,11 @@ export default function Register() {
         </div>
       ))}
       住所(漢字):
-        <AddressForm data={addressKanji} setter={setAddressKanji} />
+        <AddressForm data={addressKanji} onChange={setAddressKanji} />
       住所(かな):
-        <AddressForm data={addressKana} setter={setAddressKana} />
+        <AddressForm data={addressKana} onChange={setAddressKana} />
       <label className="inline-block w-32">生年月日</label>
-      <DobForm data={dob} setter={setDob}/>
+      <DobForm data={dob} onChange={setDob}/>
 
       <div id="tos">
         <input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)}/><a target="_blank" href="/tos">利用規約</a>に同意する
@@ -172,14 +196,17 @@ export default function Register() {
       身分証明書 表面:
       <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
         <input {...getFrontInputProps()} />
-        <canvas id="frontCanvas" className="w-80 h-60"/>
+        <canvas id="frontCanvas" width="316" height="236"/>
       </div>
 
       身分証明書 裏面:
       <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
         <input {...getBackInputProps()} />
-        <canvas id="backCanvas" className="w-80 h-60"/>
+        <canvas id="backCanvas" width="316" height="236"/>
       </div>
+
+      口座情報:
+      <ExternalAccountForm data={externalAccount} onChange={setExternalAccount}/>
     </div>
   )
 }
