@@ -2,6 +2,7 @@ import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
 import { useDropzone } from 'react-dropzone';
+import { FieldValues, useForm, UseFormRegister } from "react-hook-form";
 
 interface Dob {
   day: string
@@ -35,12 +36,12 @@ interface ExternalAccount {
 
 
 const AddressForm = (
-  {data, onChange}: {data: Address, onChange: (a: Address) => void}) => (
+  {postfix, data, onChange, register}: {postfix: string, data: Address, onChange: (a: Address) => void, register: UseFormRegister<FieldValues>}) => (
   <div>
     {["postal_code", "state", "city", "town", "line1"].map((key) => (
       <div className="p-1">
         <label className="inline-block w-32">{key}</label>
-        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]}/>
+        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]} {...register(`${key}_${postfix}`)}/>
       </div>
     ))}
   </div>
@@ -59,20 +60,20 @@ const str2dob = (str: string): Dob => {
   }
 }
 
-const DobForm = ({data, onChange}: {data: Dob, onChange: (a: Dob) => void}) => (
+const DobForm = ({data, onChange, register}: {data: Dob, onChange: (a: Dob) => void, register: UseFormRegister<FieldValues>}) => (
   <div>
-    <input type="date" onChange={(e) => onChange(str2dob(e.target.value))} value={dob2str(data)}/>
+    <input type="date" onChange={(e) => onChange(str2dob(e.target.value))} value={dob2str(data)} {...register("dob")}/>
   </div>
 )
 
 
 const ExternalAccountForm = (
-  {data, onChange}: {data: ExternalAccount, onChange: (a: ExternalAccount) => void}) => (
+  {data, onChange, register}: {data: ExternalAccount, onChange: (a: ExternalAccount) => void, register: UseFormRegister<FieldValues>}) => (
   <div>
     {["routing_number1", "routing_number2", "account_number", "account_holder_name"].map((key) => (
       <div className="p-1">
         <label className="inline-block w-32">{key}</label>
-        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]}/>
+        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]} {...register(key)}/>
       </div>
     ))}
   </div>
@@ -98,6 +99,11 @@ export default function Register() {
       await fetchUser()
     })()
   }, [])
+
+  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const onSubmit = (data) => {
+    console.log(data);
+  }
 
   const onFrontDrop = useCallback((acceptedFiles) => {
     console.log('frontAcceptedFiles:', acceptedFiles);
@@ -176,37 +182,42 @@ export default function Register() {
         <title>登録</title>
       </Head>
       <h1>登録</h1>
-      {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
-        <div className="p-1">
-          <label className="inline-block w-32">{k}</label>
-          <input className="border-2 border-gray-600 rounded" type={t ? t : "text"} onChange={(e) => setIndividual({...individual, [k]: e.target.value})} value={individual[k]}/>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
+          <div className="p-1">
+            <label className="inline-block w-32">{k}</label>
+            <input className="border-2 border-gray-600 rounded" type={t ? t : "text"} onChange={(e) => setIndividual({...individual, [k]: e.target.value})} value={individual[k]} {...register(k)}/>
+          </div>
+        ))}
+        住所(漢字):
+          <AddressForm postfix="kanji" data={addressKanji} onChange={setAddressKanji} register={register}/>
+        住所(かな):
+          <AddressForm postfix="kana" data={addressKana} onChange={setAddressKana} register={register}/>
+        <label className="inline-block w-32">生年月日</label>
+        <DobForm data={dob} onChange={setDob} register={register}/>
+
+        <div id="tos">
+          <input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)} {...register("tos")}/><a target="_blank" href="/tos">利用規約</a>に同意する
         </div>
-      ))}
-      住所(漢字):
-        <AddressForm data={addressKanji} onChange={setAddressKanji} />
-      住所(かな):
-        <AddressForm data={addressKana} onChange={setAddressKana} />
-      <label className="inline-block w-32">生年月日</label>
-      <DobForm data={dob} onChange={setDob}/>
 
-      <div id="tos">
-        <input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)}/><a target="_blank" href="/tos">利用規約</a>に同意する
-      </div>
+        身分証明書 表面:
+        <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+          <input {...getFrontInputProps()} {...register("front")}/>
+          <canvas id="frontCanvas" width="316" height="236"/>
+        </div>
 
-      身分証明書 表面:
-      <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-        <input {...getFrontInputProps()} />
-        <canvas id="frontCanvas" width="316" height="236"/>
-      </div>
+        身分証明書 裏面:
+        <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+          <input {...getBackInputProps()} {...register("back")}/>
+          <canvas id="backCanvas" width="316" height="236"/>
+        </div>
 
-      身分証明書 裏面:
-      <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-        <input {...getBackInputProps()} />
-        <canvas id="backCanvas" width="316" height="236"/>
-      </div>
+        口座情報:
+        <ExternalAccountForm data={externalAccount} onChange={setExternalAccount} register={register}/>
 
-      口座情報:
-      <ExternalAccountForm data={externalAccount} onChange={setExternalAccount}/>
+        <input type="submit" className="m-4 p-3 bg-blue-500 rounded" />
+
+      </form>
     </div>
   )
 }
