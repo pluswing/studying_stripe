@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
 import { useDropzone } from 'react-dropzone';
-import { FieldValues, useForm, UseFormRegister } from "react-hook-form";
+import { DeepMap, FieldError, FieldValues, useForm, UseFormRegister } from "react-hook-form";
 
 interface Dob {
   day: string
@@ -34,14 +34,22 @@ interface ExternalAccount {
   account_holder_name: string
 }
 
+interface AddressFormProps {
+  postfix: string
+  data: Address
+  onChange: (a: Address) => void
+  register: UseFormRegister<FieldValues>
+  errors: DeepMap<FieldValues, FieldError>
+}
 
 const AddressForm = (
-  {postfix, data, onChange, register}: {postfix: string, data: Address, onChange: (a: Address) => void, register: UseFormRegister<FieldValues>}) => (
+  {postfix, data, onChange, register, errors}: AddressFormProps) => (
   <div>
     {["postal_code", "state", "city", "town", "line1"].map((key) => (
       <div className="p-1">
         <label className="inline-block w-32">{key}</label>
-        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]} {...register(`${key}_${postfix}`)}/>
+        <input className={(errors[`${key}_${postfix}`] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]} {...register(`${key}_${postfix}`, {required: true})}/>
+        {errors[`${key}_${postfix}`] && <span className="text-red-500">必須入力です</span>}
       </div>
     ))}
   </div>
@@ -186,13 +194,14 @@ export default function Register() {
         {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
           <div className="p-1">
             <label className="inline-block w-32">{k}</label>
-            <input className="border-2 border-gray-600 rounded" type={t ? t : "text"} onChange={(e) => setIndividual({...individual, [k]: e.target.value})} value={individual[k]} {...register(k)}/>
+            <input className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} onChange={(e) => setIndividual({...individual, [k]: e.target.value})} value={individual[k]} {...register(k, { required: true })}/>
+            {errors[k] && <span className="text-red-500">必須入力です</span>}
           </div>
         ))}
         住所(漢字):
-          <AddressForm postfix="kanji" data={addressKanji} onChange={setAddressKanji} register={register}/>
+          <AddressForm postfix="kanji" data={addressKanji} onChange={setAddressKanji} register={register} errors={errors}/>
         住所(かな):
-          <AddressForm postfix="kana" data={addressKana} onChange={setAddressKana} register={register}/>
+          <AddressForm postfix="kana" data={addressKana} onChange={setAddressKana} register={register} errors={errors}/>
         <label className="inline-block w-32">生年月日</label>
         <DobForm data={dob} onChange={setDob} register={register}/>
 
