@@ -36,28 +36,22 @@ interface ExternalAccount {
 
 interface AddressFormProps {
   postfix: string
-  data: Address
-  onChange: (a: Address) => void
   register: UseFormRegister<FieldValues>
   errors: DeepMap<FieldValues, FieldError>
 }
 
 const AddressForm = (
-  {postfix, data, onChange, register, errors}: AddressFormProps) => (
+  {postfix, register, errors}: AddressFormProps) => (
   <div>
     {["postal_code", "state", "city", "town", "line1"].map((key) => (
       <div className="p-1">
         <label className="inline-block w-32">{key}</label>
-        <input className={(errors[`${key}_${postfix}`] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]} {...register(`${key}_${postfix}`, {required: true})}/>
+        <input className={(errors[`${key}_${postfix}`] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type="text" {...register(`${key}_${postfix}`, {required: true})}/>
         {errors[`${key}_${postfix}`] && <span className="text-red-500">必須入力です</span>}
       </div>
     ))}
   </div>
 )
-
-const dob2str = (dob: Dob): string => {
-  return `${dob.year}-${dob.month}-${dob.day}`
-}
 
 const str2dob = (str: string): Dob => {
   const s = str.split("-")
@@ -68,38 +62,26 @@ const str2dob = (str: string): Dob => {
   }
 }
 
-const DobForm = ({data, onChange, register}: {data: Dob, onChange: (a: Dob) => void, register: UseFormRegister<FieldValues>}) => (
+const DobForm = ({register}: {register: UseFormRegister<FieldValues>}) => (
   <div>
-    <input type="date" onChange={(e) => onChange(str2dob(e.target.value))} value={dob2str(data)} {...register("dob")}/>
+    <input type="date" {...register("dob")}/>
   </div>
 )
 
 
 const ExternalAccountForm = (
-  {data, onChange, register}: {data: ExternalAccount, onChange: (a: ExternalAccount) => void, register: UseFormRegister<FieldValues>}) => (
+  {register}: {register: UseFormRegister<FieldValues>}) => (
   <div>
     {["routing_number1", "routing_number2", "account_number", "account_holder_name"].map((key) => (
       <div className="p-1">
         <label className="inline-block w-32">{key}</label>
-        <input className="border-2 border-gray-600 rounded" type="text" onChange={(e) => onChange({...data, [key]: e.target.value})} value={data[key]} {...register(key)}/>
+        <input className="border-2 border-gray-600 rounded" type="text" {...register(key)}/>
       </div>
     ))}
   </div>
 )
 
 export default function Register() {
-  const [individual, setIndividual] = useState({
-  } as Individual)
-  const [addressKanji, setAddressKanji] = useState({
-  } as Address)
-  const [addressKana, setAddressKana] = useState({
-  } as Address)
-  const [dob, setDob] = useState({
-  } as Dob)
-  const [tos, setTos] = useState(false)
-  const [externalAccount, setExternalAccount] = useState({
-  } as ExternalAccount)
-
   const router = useRouter();
 
   useEffect(() => {
@@ -109,8 +91,60 @@ export default function Register() {
   }, [])
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
-  const onSubmit = (data) => {
-    console.log(data);
+
+  const onSubmit = async (data) => {
+    console.log("data", data);
+
+    const res =  await fetch("http://localhost:8000/stripe/account", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({
+        individual: {
+          first_name_kana: data.first_name_kanji,
+          first_name_kanji: data.first_name_kanji,
+          last_name_kana: data.last_name_kana,
+          last_name_kanji: data.last_name_kanji,
+          email: data.email,
+          phone: data.phone,
+          address_kanji: {
+            line1: data.line1_kanji,
+            postal_code: data.postal_code_kanji,
+            city: data.city_kanji,
+            state: data.state_kanji,
+            town: data.town_kanji,
+          },
+          address_kana: {
+            line1: data.line1_kana,
+            postal_code: data.postal_code_kana,
+            city: data.city_kana,
+            state: data.state_kana,
+            town: data.town_kana,
+          },
+          dob: str2dob(data.dob),
+          verification: {
+            document: {
+              // TODO
+              front: await imageStr(data.front),
+              back: await imageStr(data.back),
+            }
+          }
+        },
+        external_account: {
+          account_number: data.account_number,
+          routing_number: `${data.routing_number1}${data.routing_number2}`,
+          account_holder_name: data.account_holder_name
+        }
+      })
+    })
+    const rdata = await res.json()
+    if (rdata.error) {
+      router.replace("/login")
+      return
+    }
+
   }
 
   const onFrontDrop = useCallback((acceptedFiles) => {
@@ -123,6 +157,18 @@ export default function Register() {
     drawCanvas(acceptedFiles[0], "#backCanvas")
   }, []);
 
+  const imageStr = async (file: File): Promise<string> => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        resolve(reader.result as string)
+      }
+      reader.onerror = () => {
+        reject("file read error")
+      }
+    })
+  }
 
   const drawCanvas = (file: File, canvasId: string) => {
     let reader = new FileReader()
@@ -194,19 +240,19 @@ export default function Register() {
         {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
           <div className="p-1">
             <label className="inline-block w-32">{k}</label>
-            <input className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} onChange={(e) => setIndividual({...individual, [k]: e.target.value})} value={individual[k]} {...register(k, { required: true })}/>
+            <input className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} {...register(k, { required: true })}/>
             {errors[k] && <span className="text-red-500">必須入力です</span>}
           </div>
         ))}
         住所(漢字):
-          <AddressForm postfix="kanji" data={addressKanji} onChange={setAddressKanji} register={register} errors={errors}/>
+          <AddressForm postfix="kanji" register={register} errors={errors}/>
         住所(かな):
-          <AddressForm postfix="kana" data={addressKana} onChange={setAddressKana} register={register} errors={errors}/>
+          <AddressForm postfix="kana" register={register} errors={errors}/>
         <label className="inline-block w-32">生年月日</label>
-        <DobForm data={dob} onChange={setDob} register={register}/>
+        <DobForm register={register}/>
 
         <div id="tos">
-          <input type="checkbox" checked={tos} onChange={(e) => setTos(e.target.checked)} {...register("tos")}/><a target="_blank" href="/tos">利用規約</a>に同意する
+          <input type="checkbox" {...register("tos")}/><a target="_blank" href="/tos">利用規約</a>に同意する
         </div>
 
         身分証明書 表面:
@@ -222,7 +268,7 @@ export default function Register() {
         </div>
 
         口座情報:
-        <ExternalAccountForm data={externalAccount} onChange={setExternalAccount} register={register}/>
+        <ExternalAccountForm register={register}/>
 
         <input type="submit" className="m-4 p-3 bg-blue-500 rounded" />
 
