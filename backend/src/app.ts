@@ -327,6 +327,37 @@ app.post('/platform/refund_order', async (req, res) => {
   });
 });
 
+app.post('/stripe/account', async (req, res) => {
+  const account = await findAccount(req.authUser);
+
+  if (!account) {
+    throw new Error('account not found');
+  }
+
+  const front = req.body.individual.verification.document.front;
+  const back = req.body.individual.verification.document.back;
+  delete req.body.individual.verification.document.front;
+  delete req.body.individual.verification.document.back;
+
+  if (front) {
+    // base64 decode front
+    var file = await stripe.files.create({
+      purpose: 'identity_document',
+      file: {
+        data: null,
+        name: 'front.jpg',
+        type: 'application/octet-stream',
+      },
+    });
+    // FIXME エラーチェック
+    req.body.individual.verification.document.front = file.id;
+  }
+
+  stripe.accounts.update(account.stripeAccountId, {
+    ...req.body,
+  });
+});
+
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err);
   return res.status(400).json({

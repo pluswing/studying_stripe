@@ -25,13 +25,28 @@ interface Individual {
   last_name_kanji: string
   email: string
   phone: string
+
+  address_kanji: Address
+  address_kana: Address
+  dob: Dob
+
+  verification: {
+    document: {
+      front: string|null
+      back: string|null
+    }
+  }
 }
 
 interface ExternalAccount {
   account_number: string
-  routing_number1: string
-  routing_number2: string
+  routing_number: string
   account_holder_name: string
+}
+
+interface StripeAccountRequest {
+  individual: Individual
+  external_account: ExternalAccount
 }
 
 interface AddressFormProps {
@@ -68,7 +83,6 @@ const DobForm = ({register}: {register: UseFormRegister<FieldValues>}) => (
   </div>
 )
 
-
 const ExternalAccountForm = (
   {register}: {register: UseFormRegister<FieldValues>}) => (
   <div>
@@ -91,61 +105,6 @@ export default function Register() {
   }, [])
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
-
-  const onSubmit = async (data) => {
-    console.log("data", data);
-
-    const res =  await fetch("http://localhost:8000/stripe/account", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem("access_token")
-      },
-      body: JSON.stringify({
-        individual: {
-          first_name_kana: data.first_name_kanji,
-          first_name_kanji: data.first_name_kanji,
-          last_name_kana: data.last_name_kana,
-          last_name_kanji: data.last_name_kanji,
-          email: data.email,
-          phone: data.phone,
-          address_kanji: {
-            line1: data.line1_kanji,
-            postal_code: data.postal_code_kanji,
-            city: data.city_kanji,
-            state: data.state_kanji,
-            town: data.town_kanji,
-          },
-          address_kana: {
-            line1: data.line1_kana,
-            postal_code: data.postal_code_kana,
-            city: data.city_kana,
-            state: data.state_kana,
-            town: data.town_kana,
-          },
-          dob: str2dob(data.dob),
-          verification: {
-            document: {
-              // TODO
-              front: await imageStr(data.front),
-              back: await imageStr(data.back),
-            }
-          }
-        },
-        external_account: {
-          account_number: data.account_number,
-          routing_number: `${data.routing_number1}${data.routing_number2}`,
-          account_holder_name: data.account_holder_name
-        }
-      })
-    })
-    const rdata = await res.json()
-    if (rdata.error) {
-      router.replace("/login")
-      return
-    }
-
-  }
 
   const onFrontDrop = useCallback((acceptedFiles) => {
     console.log('frontAcceptedFiles:', acceptedFiles);
@@ -230,6 +189,66 @@ export default function Register() {
     // setData({})
   }
 
+
+  const onSubmit = async (data) => {
+    console.log("data", data);
+
+    if (!data.tos) {
+      alert("利用規約に同意してください。")
+      return
+    }
+
+    const res =  await fetch("http://localhost:8000/stripe/account", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({
+        individual: {
+          first_name_kana: data.first_name_kanji,
+          first_name_kanji: data.first_name_kanji,
+          last_name_kana: data.last_name_kana,
+          last_name_kanji: data.last_name_kanji,
+          email: data.email,
+          phone: data.phone,
+          address_kanji: {
+            line1: data.line1_kanji,
+            postal_code: data.postal_code_kanji,
+            city: data.city_kanji,
+            state: data.state_kanji,
+            town: data.town_kanji,
+          },
+          address_kana: {
+            line1: data.line1_kana,
+            postal_code: data.postal_code_kana,
+            city: data.city_kana,
+            state: data.state_kana,
+            town: data.town_kana,
+          },
+          dob: str2dob(data.dob),
+          verification: {
+            document: {
+              front: frontAcceptedFiles.length ? await imageStr(frontAcceptedFiles[0]) : null,
+              back: backAcceptedFiles.length ? await imageStr(backAcceptedFiles[0]) : null,
+            }
+          }
+        },
+        external_account: {
+          account_number: data.account_number,
+          routing_number: `${data.routing_number1}${data.routing_number2}`,
+          account_holder_name: data.account_holder_name
+        }
+      } as StripeAccountRequest)
+    })
+    const rdata = await res.json()
+    if (rdata.error) {
+      router.replace("/login")
+      return
+    }
+
+  }
+
   return (
     <div>
       <Head>
@@ -257,13 +276,13 @@ export default function Register() {
 
         身分証明書 表面:
         <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-          <input {...getFrontInputProps()} {...register("front")}/>
+          <input {...getFrontInputProps()}/>
           <canvas id="frontCanvas" width="316" height="236"/>
         </div>
 
         身分証明書 裏面:
         <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-          <input {...getBackInputProps()} {...register("back")}/>
+          <input {...getBackInputProps()}/>
           <canvas id="backCanvas" width="316" height="236"/>
         </div>
 
