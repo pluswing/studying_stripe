@@ -326,8 +326,17 @@ app.post('/platform/refund_order', async (req, res) => {
     ok: true,
   });
 });
+app.post('/stripe/account/get', async (req, res) => {
+  const account = await findAccount(req.authUser);
 
-app.post('/stripe/account', async (req, res) => {
+  if (!account) {
+    throw new Error('account not found');
+  }
+  const sa = await stripe.accounts.retrieve(account.stripeAccountId);
+  res.json(sa);
+});
+
+app.post('/stripe/account/update', async (req, res) => {
   const account = await findAccount(req.authUser);
 
   if (!account) {
@@ -340,21 +349,39 @@ app.post('/stripe/account', async (req, res) => {
   delete req.body.individual.verification.document.back;
 
   if (front) {
-    // base64 decode front
-    var file = await stripe.files.create({
+    const binaryData = Buffer.from(
+      front.replace(/^data:.*?;base64,/, ''),
+      'base64'
+    ).toString('binary');
+    const file = await stripe.files.create({
       purpose: 'identity_document',
       file: {
-        data: null,
+        data: binaryData,
         name: 'front.jpg',
         type: 'application/octet-stream',
       },
     });
-    // FIXME エラーチェック
     req.body.individual.verification.document.front = file.id;
   }
 
-  stripe.accounts.update(account.stripeAccountId, {
-    ...req.body,
+  if (back) {
+    const binaryData = Buffer.from(
+      back.replace(/^data:.*?;base64,/, ''),
+      'base64'
+    ).toString('binary');
+    const file = await stripe.files.create({
+      purpose: 'identity_document',
+      file: {
+        data: binaryData,
+        name: 'back.jpg',
+        type: 'application/octet-stream',
+      },
+    });
+    req.body.individual.verification.document.back = file.id;
+  }
+  await stripe.accounts.update(account.stripeAccountId, req.body);
+  res.json({
+    ok: true,
   });
 });
 

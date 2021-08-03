@@ -97,10 +97,14 @@ const ExternalAccountForm = (
 
 export default function Register() {
   const router = useRouter();
+  const [account, setAccount] = useState({
+    individual: {},
+    external_account: {}
+  } as StripeAccountRequest)
 
   useEffect(() => {
     (async () => {
-      await fetchUser()
+      await fetchAccount()
     })()
   }, [])
 
@@ -172,8 +176,8 @@ export default function Register() {
     }
   );
 
-  const fetchUser = async () => {
-    const res =  await fetch("http://localhost:8000/user", {
+  const fetchAccount = async () => {
+    const res = await fetch("http://localhost:8000/stripe/account/get", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -186,7 +190,9 @@ export default function Register() {
       router.replace("/login")
       return
     }
-    // setData({})
+    console.log(data)
+    setAccount(data)
+    // TODO dataをinputタグにセットする
   }
 
 
@@ -259,7 +265,7 @@ export default function Register() {
         {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
           <div className="p-1">
             <label className="inline-block w-32">{k}</label>
-            <input className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} {...register(k, { required: true })}/>
+            <input defaultValue={(account.individual || {})[k]} className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} {...register(k, { required: true })}/>
             {errors[k] && <span className="text-red-500">必須入力です</span>}
           </div>
         ))}
