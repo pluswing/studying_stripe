@@ -204,7 +204,7 @@ export default function Register() {
       return
     }
 
-    const res =  await fetch("http://localhost:8000/stripe/account", {
+    const res =  await fetch("http://localhost:8000/stripe/account/update", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -249,7 +249,7 @@ export default function Register() {
     })
     const rdata = await res.json()
     if (rdata.error) {
-      router.replace("/login")
+      // router.replace("/login")
       return
     }
 

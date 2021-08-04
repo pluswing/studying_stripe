@@ -63,7 +63,7 @@ app.use((req, res, next) => {
   if (req.originalUrl === '/webhook') {
     next();
   } else {
-    bodyParser.json()(req, res, next);
+    bodyParser.json({ limit: '50mb' })(req, res, next);
   }
 });
 app.use(async (req, res, next) => {
@@ -126,7 +126,17 @@ app.post('/connect_stripe', async (req, res) => {
   if (!account) {
     // Accountのデータを作る（ドラフト状態）
     const res = await stripe.accounts.create({
-      type: 'express',
+      country: 'JP',
+      type: 'custom',
+      business_type: 'individual',
+      capabilities: {
+        card_payments: {
+          requested: true,
+        },
+        transfers: {
+          requested: true,
+        },
+      },
     });
     account = await connectAccount(req.authUser, res.id);
   }
@@ -352,7 +362,7 @@ app.post('/stripe/account/update', async (req, res) => {
     const binaryData = Buffer.from(
       front.replace(/^data:.*?;base64,/, ''),
       'base64'
-    ).toString('binary');
+    );
     const file = await stripe.files.create({
       purpose: 'identity_document',
       file: {
@@ -368,7 +378,7 @@ app.post('/stripe/account/update', async (req, res) => {
     const binaryData = Buffer.from(
       back.replace(/^data:.*?;base64,/, ''),
       'base64'
-    ).toString('binary');
+    );
     const file = await stripe.files.create({
       purpose: 'identity_document',
       file: {

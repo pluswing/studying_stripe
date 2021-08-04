@@ -13,8 +13,13 @@ interface Product {
   url: string;
 }
 
+interface CartItem {
+  product: Product;
+  count: number;
+}
+
 export default function Products() {
-  const [products, setProducts] = useState([] as Product[])
+  const [cartItem, setCartItem] = useState([] as CartItem[])
   const [stripePromise, setStripePromise] = useState({} as any)
   const [clientSecret, setClientSecret] = useState("")
 
@@ -38,7 +43,19 @@ export default function Products() {
       })
     })
     const data = await res.json()
-    setProducts(data.products || [])
+
+    const items: CartItem[] = []
+    const cart = JSON.parse(localStorage.getItem("cart"))
+    data.products.forEach((p: Product) => {
+      if (Object.keys(cart).includes(`${p.id}`)) {
+        const count = cart[p.id]
+        items.push({
+          product: p,
+          count,
+        })
+      }
+    })
+    setCartItem(items)
   }
 
   const doBuy = async (productId: number) => {
@@ -57,13 +74,6 @@ export default function Products() {
     setClientSecret(data.client_secret)
   }
 
-  const addCart = (productId) => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "{}")
-    cart[productId] ||= 0
-    cart[productId] += 1
-    localStorage.setItem("cart", JSON.stringify(cart))
-    console.log(cart)
-  }
 return (
     <div>
       <Head>
@@ -75,7 +85,6 @@ return (
           <div>{p.name}</div>
           <div>{p.amount}</div>
           <div><button onClick={() => {doBuy(p.id)}}>購入</button></div>
-          <div><button onClick={() => {addCart(p.id)}}>カートに入れる</button></div>
         </div>
       ))
       }
