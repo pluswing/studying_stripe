@@ -44,8 +44,16 @@ export default function Products() {
     })
     const data = await res.json()
 
+    // ここで個数が0の物を削除する。
+    const cart = JSON.parse(localStorage.getItem("cart") || "{}")
+    Object.keys(cart).forEach((productId) => {
+      if (cart[productId] <= 0) {
+        delete cart[productId]
+      }
+    })
+    localStorage.setItem("cart", JSON.stringify(cart))
+
     const items: CartItem[] = []
-    const cart = JSON.parse(localStorage.getItem("cart"))
     data.products.forEach((p: Product) => {
       if (Object.keys(cart).includes(`${p.id}`)) {
         const count = cart[p.id]
@@ -58,14 +66,15 @@ export default function Products() {
     setCartItem(items)
   }
 
-  const doBuy = async (productId: number) => {
+  const doBuy = async () => {
+    const cart = JSON.parse(localStorage.getItem("cart") || "{}")
     const res =  await fetch("http://localhost:8000/buy_products", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        product_ids: [productId]
+        items: cart
       })
     })
     const data = await res.json()
@@ -74,20 +83,39 @@ export default function Products() {
     setClientSecret(data.client_secret)
   }
 
-return (
+  const changeCount = (c: CartItem, e) => {
+    const item = cartItem.find((i) => i.product.id == c.product.id)
+    if (!item) {
+      return
+    }
+    item.count = parseInt(e.target.value, 10)
+    setCartItem([...cartItem])
+    changeCartCount(item)
+  }
+
+  const changeCartCount = (item: CartItem) => {
+    const cart = JSON.parse(localStorage.getItem("cart") || "{}")
+    cart[item.product.id] = item.count
+    localStorage.setItem("cart", JSON.stringify(cart))
+  }
+
+  return (
     <div>
       <Head>
-        <title>PRODUCTS</title>
+        <title>CART</title>
       </Head>
-      <h1>PRODUCTS</h1>
-      {products.map((p) => (
+      <h1>CART</h1>
+      {cartItem.map((c) => (
         <div className="border-gray-800 border-2 p-2 m-1">
-          <div>{p.name}</div>
-          <div>{p.amount}</div>
-          <div><button onClick={() => {doBuy(p.id)}}>購入</button></div>
+          <div>{c.product.name}</div>
+          <div>{c.product.amount}円</div>
+          <div>
+            <input type="number" min="0" max="100" value={c.count} onChange={(e) => changeCount(c, e)}/>個
+          </div>
         </div>
       ))
       }
+      <div><button onClick={() => {doBuy()}}>購入する</button></div>
       {stripePromise && clientSecret ? (
       <Elements stripe={stripePromise}>
         <CheckoutFrom client_secret={clientSecret}/>
