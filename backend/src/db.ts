@@ -243,6 +243,9 @@ export const paidOrder = async (
       chargeId,
     },
   });
+
+  // 売り手の未入金額に金額を追加する
+
   // TODO 要チェック
   if (!o) {
     throw new Error('order not found.');
@@ -299,15 +302,17 @@ export const findOrder = async (
 export const addOrderItem = async (
   parent: OrderParent,
   product: Product,
+  count: number,
   transferRatio: number = 0.9
 ): Promise<OrderItem> => {
-  const transfer = Math.ceil(product.amount * transferRatio);
+  const transfer = Math.ceil(product.amount * count * transferRatio);
   const fee = product.amount - transfer;
 
   const item = await prisma.orderItem.create({
     data: {
       parentId: parent.id,
       productId: product.id,
+      // count, FIXME add count field
       transfer,
       fee,
       transferId: null,

@@ -207,10 +207,14 @@ app.post('/dashboard', async (req, res) => {
 });
 
 app.post('/buy_products', async (req, res) => {
-  // { "product_ids": [999] }
-  const items: Array<{ product: Product; account: Account }> = [];
-  for (const id of req.body.product_ids) {
-    const product = await findProduct(id);
+  // req.body.items = { [product_id]: 個数, ... }
+  const items: Array<{
+    product: Product;
+    account: Account;
+    count: number;
+  }> = [];
+  for (const id of Object.keys(req.body.items)) {
+    const product = await findProduct(parseInt(id, 10));
     const user = await findUserById(product.userId);
     const account = await findAccount(user);
     if (!account) {
@@ -220,11 +224,12 @@ app.post('/buy_products', async (req, res) => {
     items.push({
       product,
       account,
+      count: parseInt(req.body.items[id], 10),
     });
   }
 
   const amount = items.reduce((total, item) => {
-    return total + item.product.amount;
+    return total + item.product.amount * item.count;
   }, 0);
 
   const transferGroup = uuidv4();
@@ -245,7 +250,7 @@ app.post('/buy_products', async (req, res) => {
 
   const order = await createOrder(amount, transferGroup);
   for (const item of items) {
-    await addOrderItem(order, item.product);
+    await addOrderItem(order, item.product, item.count);
   }
 
   res.json({
@@ -280,7 +285,7 @@ app.post(
       const chargeId = paymentIntent.charges.data[0].id;
       const order = await findOrderByTransferGroup(transferGroup);
 
-      // @ts-ignore
+      /*
       for (const item of order.orderItems) {
         const product = await findProduct(item.productId);
         const user = await findUserById(product.userId);
@@ -297,6 +302,7 @@ app.post(
         });
         await saveTransfer(item, transfer.id);
       }
+      */
       await paidOrder(transferGroup, chargeId);
     }
     response.json({ received: true });
