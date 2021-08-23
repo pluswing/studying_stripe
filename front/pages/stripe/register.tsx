@@ -94,21 +94,52 @@ const ExternalAccountForm = (
     ))}
   </div>
 )
-
 export default function Register() {
   const router = useRouter();
-  const [account, setAccount] = useState({
-    individual: {},
-    external_account: {}
-  } as StripeAccountRequest)
-
+  const [account, setAccount] = useState<StripeAccountRequest>(null)
   useEffect(() => {
     (async () => {
       await fetchAccount()
     })()
   }, [])
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const fetchAccount = async () => {
+    const res = await fetch("http://localhost:8000/stripe/account/get", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({})
+    })
+    const data = await res.json()
+    if (data.error) {
+      router.replace("/login")
+      return
+    }
+    console.log(data)
+    setAccount(data)
+    // TODO dataをinputタグにセットする
+  }
+
+  return (
+    <div>
+      <Head>
+        <title>登録</title>
+      </Head>
+      <h1>登録</h1>
+      {account ? <RegisterForm account={account}/>: <div>ロード中</div>}
+    </div>
+  )
+}
+
+const RegisterForm = ({account}: {account: StripeAccountRequest}) => {
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    defaultValues: {
+      // FIXME データ整形
+      ...account.individual,
+    } as any
+  });
 
   const onFrontDrop = useCallback((acceptedFiles) => {
     console.log('frontAcceptedFiles:', acceptedFiles);
@@ -176,26 +207,6 @@ export default function Register() {
     }
   );
 
-  const fetchAccount = async () => {
-    const res = await fetch("http://localhost:8000/stripe/account/get", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem("access_token")
-      },
-      body: JSON.stringify({})
-    })
-    const data = await res.json()
-    if (data.error) {
-      router.replace("/login")
-      return
-    }
-    console.log(data)
-    setAccount(data)
-    // TODO dataをinputタグにセットする
-  }
-
-
   const onSubmit = async (data) => {
     console.log("data", data);
 
@@ -256,48 +267,42 @@ export default function Register() {
   }
 
   return (
-    <div>
-      <Head>
-        <title>登録</title>
-      </Head>
-      <h1>登録</h1>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
-          <div className="p-1">
-            <label className="inline-block w-32">{k}</label>
-            <input defaultValue={(account.individual || {})[k]} className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} {...register(k, { required: true })}/>
-            {errors[k] && <span className="text-red-500">必須入力です</span>}
-          </div>
-        ))}
-        住所(漢字):
-          <AddressForm postfix="kanji" register={register} errors={errors}/>
-        住所(かな):
-          <AddressForm postfix="kana" register={register} errors={errors}/>
-        <label className="inline-block w-32">生年月日</label>
-        <DobForm register={register}/>
-
-        <div id="tos">
-          <input type="checkbox" {...register("tos")}/><a target="_blank" href="/tos">利用規約</a>に同意する
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {[{k: "last_name_kanji"}, {k: "first_name_kanji"}, {k: "last_name_kana"}, {k: "first_name_kana"}, {k: "email", t: "email"}, {k: "phone", t: "tel"}].map(({k, t}) => (
+        <div className="p-1">
+          <label className="inline-block w-32">{k}</label>
+          <input className={(errors[k] ? "border-red-600" : "border-gray-600") + " border-2 rounded"} type={t ? t : "text"} {...register(k, { required: true })}/>
+          {errors[k] && <span className="text-red-500">必須入力です</span>}
         </div>
+      ))}
+      住所(漢字):
+        <AddressForm postfix="kanji" register={register} errors={errors}/>
+      住所(かな):
+        <AddressForm postfix="kana" register={register} errors={errors}/>
+      <label className="inline-block w-32">生年月日</label>
+      <DobForm register={register}/>
 
-        身分証明書 表面:
-        <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-          <input {...getFrontInputProps()}/>
-          <canvas id="frontCanvas" width="316" height="236"/>
-        </div>
+      <div id="tos">
+        <input type="checkbox" {...register("tos")}/><a target="_blank" href="/tos">利用規約</a>に同意する
+      </div>
 
-        身分証明書 裏面:
-        <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
-          <input {...getBackInputProps()}/>
-          <canvas id="backCanvas" width="316" height="236"/>
-        </div>
+      身分証明書 表面:
+      <div {...getFrontRootProps()} className={isFrontDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+        <input {...getFrontInputProps()}/>
+        <canvas id="frontCanvas" width="316" height="236"/>
+      </div>
 
-        口座情報:
-        <ExternalAccountForm register={register}/>
+      身分証明書 裏面:
+      <div {...getBackRootProps()} className={isBackDragActive ? "w-80 h-60 border-2 border-green-400" : "w-80 h-60 border-2 border-gray-600"}>
+        <input {...getBackInputProps()}/>
+        <canvas id="backCanvas" width="316" height="236"/>
+      </div>
 
-        <input type="submit" className="m-4 p-3 bg-blue-500 rounded" />
+      口座情報:
+      <ExternalAccountForm register={register}/>
 
-      </form>
-    </div>
+      <input type="submit" className="m-4 p-3 bg-blue-500 rounded" />
+
+    </form>
   )
 }
