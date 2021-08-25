@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import {
   AccessToken,
   Account,
+  Balance,
   OrderItem,
   OrderParent,
   PrismaClient,
@@ -242,18 +243,18 @@ export const paidOrder = async (
       paidAt: new Date(),
       chargeId,
     },
+    include: {
+      orderItems: {
+        include: {
+          product: true,
+        },
+      },
+    },
   });
 
-  // 売り手の未入金額に金額を追加する
-  /*prisma.balance.create({
-    data: {
-      ...
-    }
-  })*/
-
-  // TODO 要チェック
-  if (!o) {
-    throw new Error('order not found.');
+  // 売り手のバランスに金額を追加する
+  for (const item of o.orderItems) {
+    await addBalanceByOrderItem(item);
   }
 };
 
@@ -345,4 +346,40 @@ export const listOrder = async (user: User): Promise<OrderItem[]> => {
     },
   });
   return items;
+};
+
+// balance
+const addBalanceByOrderItem = async (
+  item: OrderItem & { product: Product }
+): Promise<void> => {
+  await addBalance(item.product.userId, item.transfer, item.id);
+};
+
+const addBalance = async (
+  userId: number,
+  amount: number,
+  orderItemId: number | null
+): Promise<void> => {
+  await prisma.balance.create({
+    data: {
+      userId,
+      amount,
+      orderItemId,
+    },
+  });
+};
+
+const getBalance = async (user: User): Promise<Balance[]> => {
+  return await prisma.balance.findMany({
+    where: { user },
+  });
+};
+
+const withdraw = async (user: User, amount: number): Promise<void> => {
+  // TODO 残高があるかどうか
+
+  if (amount < 0) {
+    throw new Error('minus withdraw');
+  }
+  await addBalance(user.id, -amount, null);
 };
