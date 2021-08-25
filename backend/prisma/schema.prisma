@@ -17,6 +17,7 @@ model User {
   accessToken AccessToken?
   account     Account?
   products    Product[]
+  Balance     Balance[]
 }
 
 model AccessToken {
@@ -72,4 +73,14 @@ model OrderItem {
 
   parent  OrderParent @relation(fields: [parentId], references: [id])
   product Product     @relation(fields: [productId], references: [id])
+}
+
+model Balance {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  amount      Int
+  orderItemId Int?
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+
+  user User @relation(fields: [userId], references: [id])
 }

@@ -245,6 +245,11 @@ export const paidOrder = async (
   });
 
   // 売り手の未入金額に金額を追加する
+  /*prisma.balance.create({
+    data: {
+      ...
+    }
+  })*/
 
   // TODO 要チェック
   if (!o) {

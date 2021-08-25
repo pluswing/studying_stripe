@@ -283,26 +283,6 @@ app.post(
         throw new Error('empty transfer_group');
       }
       const chargeId = paymentIntent.charges.data[0].id;
-      const order = await findOrderByTransferGroup(transferGroup);
-
-      /*
-      for (const item of order.orderItems) {
-        const product = await findProduct(item.productId);
-        const user = await findUserById(product.userId);
-        const account = await findAccount(user);
-        if (!account) {
-          throw new Error('invalid status');
-        }
-        const transfer = await stripe.transfers.create({
-          amount: item.transfer,
-          currency: 'jpy',
-          destination: account.stripeAccountId,
-          transfer_group: transferGroup,
-          source_transaction: chargeId,
-        });
-        await saveTransfer(item, transfer.id);
-      }
-      */
       await paidOrder(transferGroup, chargeId);
     }
     response.json({ received: true });
