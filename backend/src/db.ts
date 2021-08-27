@@ -369,15 +369,28 @@ const addBalance = async (
   });
 };
 
-const getBalance = async (user: User): Promise<Balance[]> => {
+export const getBalanceList = async (user: User): Promise<Balance[]> => {
   return await prisma.balance.findMany({
     where: { user },
   });
 };
 
-const withdraw = async (user: User, amount: number): Promise<void> => {
-  // TODO 残高があるかどうか
+export const getBalanceTotal = async (user: User): Promise<number> => {
+  const res = await prisma.balance.aggregate({
+    _sum: {
+      amount: true,
+    },
+    where: { user },
+  });
+  return res._sum.amount || 0;
+};
 
+export const withdraw = async (user: User, amount: number): Promise<void> => {
+  // TODO 残高があるかどうか
+  const total = await getBalanceTotal(user);
+  if (total < amount) {
+    throw new Error('failed withdraw');
+  }
   if (amount < 0) {
     throw new Error('minus withdraw');
   }

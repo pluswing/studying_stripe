@@ -19,6 +19,7 @@ export default function Mypage() {
     userId: ""
   })
   const [products, setProducts] = useState([] as Product[])
+  const [balanceTotal, setBalanceTotal] = useState(0)
 
   const router = useRouter();
 
@@ -26,6 +27,7 @@ export default function Mypage() {
     (async () => {
       await fetchUser()
       await fetchProducts()
+      await fetchBalance()
     })()
   }, [])
 
@@ -59,6 +61,25 @@ export default function Mypage() {
     })
     const data2 = await res2.json()
     setProducts(data2.products || [])
+  }
+
+
+  const fetchBalance = async () => {
+    const res =  await fetch("http://localhost:8000/mypage/balances", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': localStorage.getItem("access_token")
+      },
+      body: JSON.stringify({})
+    })
+    const data = await res.json()
+    if (data.error) {
+      router.replace("/login")
+      return
+    }
+    setBalanceTotal(data.total)
+    // data.list -> Balance List
   }
 
   const connectStripe = useCallback(async () => {
@@ -117,6 +138,8 @@ return (
           <a onClick={connectStripe}>Stripeと連携</a>
         </div>
         )}
+      <hr/>
+      残高: {balanceTotal}
       <hr/>
       <AddProduct onAdded={fetchProducts}/>
       <hr/>

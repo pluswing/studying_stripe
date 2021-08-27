@@ -25,6 +25,8 @@ import {
   listOrderParent,
   refundOrder,
   findOrder,
+  getBalanceTotal,
+  getBalanceList,
 } from './db';
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Product, User } from '@prisma/client';
@@ -378,6 +380,15 @@ app.post('/stripe/account/update', async (req, res) => {
   await stripe.accounts.update(account.stripeAccountId, req.body);
   res.json({
     ok: true,
+  });
+});
+
+app.post('/mypage/balances', async (req, res) => {
+  const total = await getBalanceTotal(req.authUser);
+  const list = await getBalanceList(req.authUser);
+  res.json({
+    total,
+    list,
   });
 });
 
