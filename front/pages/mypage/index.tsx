@@ -1,7 +1,8 @@
 import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router';
-import AddProduct from "../components/AddProduct"
+import AddProduct from "../../components/AddProduct"
+import Link from 'next/link';
 
 interface Product {
   id: number;
@@ -139,7 +140,7 @@ return (
         </div>
         )}
       <hr/>
-      残高: {balanceTotal}
+      残高: {balanceTotal} <Link href="/mypage/balance"><a>詳細</a></Link>
       <hr/>
       <AddProduct onAdded={fetchProducts}/>
       <hr/>

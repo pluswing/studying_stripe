@@ -386,7 +386,6 @@ export const getBalanceTotal = async (user: User): Promise<number> => {
 };
 
 export const withdraw = async (user: User, amount: number): Promise<void> => {
-  // TODO 残高があるかどうか
   const total = await getBalanceTotal(user);
   if (total < amount) {
     throw new Error('failed withdraw');
