@@ -5,6 +5,7 @@ services:
       context: ./backend
     volumes:
       - ./backend:/app
+      - /app/node_modules
     ports:
       - 8000:8000
     working_dir: /app
@@ -12,15 +13,18 @@ services:
     environment:
       SECRET_KEY: XXX
       API_KEY: YYY
+    command: npm run dev
   front:
     build:
       context: ./front
     volumes:
       - ./front:/app
+      - /app/node_modules
     ports:
       - 3000:3000
     working_dir: /app
     tty: true
+    command: npm run dev
   mysql:
     image: mysql:8.0.25
     command: --default-authentication-plugin=mysql_native_password

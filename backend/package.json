@@ -1,6 +1,7 @@
 {
   "scripts": {
     "start": "ts-node src/app.ts",
+    "dev": "npm run db:sync && ts-node src/app.ts",
     "db:create_migrate": "npx prisma migrate dev --create-only --name",
     "db:apply_migrate": "npx prisma migrate deploy",
     "db:format": "npx prisma format",
