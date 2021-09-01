@@ -55,7 +55,7 @@ export default function Balance() {
         'Authorization': localStorage.getItem("access_token")
       },
       body: JSON.stringify({
-        amount
+        amount: parseInt(amount, 10)
       })
     })
     const data = await res.json()

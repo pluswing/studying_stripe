@@ -20,8 +20,7 @@ import {
   createOrder,
   paidOrder,
   addOrderItem,
-  findOrderByTransferGroup,
-  saveTransfer,
+  withdraw,
   listOrderParent,
   refundOrder,
   findOrder,
@@ -391,6 +390,22 @@ app.post('/mypage/balances', async (req, res) => {
     list,
   });
 });
+
+app.post('/mypage/balances/transfer', async (req, res) => {
+  const amount = req.body.amount
+  const account = await findAccount(req.authUser);
+
+  const transfer = await stripe.transfers.create({
+    amount,
+    currency: 'jpy',
+    destination: account.stripeAccountId,
+  });
+
+  // FIXME transfer ID欲しい
+  // transfer.id
+  await withdraw(req.authUser, amount)
+  res.json({ok: true})
+})
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err);
