@@ -395,6 +395,10 @@ app.post('/mypage/balances/transfer', async (req, res) => {
   const amount = req.body.amount
   const account = await findAccount(req.authUser);
 
+  if (!account) {
+    throw new Error('account not found');
+  }
+
   const transfer = await stripe.transfers.create({
     amount,
     currency: 'jpy',
